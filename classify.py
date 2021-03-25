@@ -152,28 +152,11 @@ def creating_train_test_data(dir, stimuli_type, mode, mode_th, validation_acc):
 		#print(path)
 		# Classification: returns 0 if left stimuli is more white/ bigger numerically and 1 otherwise.
 		label = extract_label(path, stimuli_type, task)
-		# path = os.path.join(dir, img)
 		rgba_image = Image.open(path)
-		# this concerts to grayscale
-		#img = img.convert('L')
-
 		rgb_image = rgba_image.convert('RGB')
 		rgb_image = rgb_image.resize((IMG_SIZE, IMG_SIZE), Image.ANTIALIAS)
 		img = rgb_image.copy()
 		data.append([np.array(img), label['classification_label']])
-		#plt.imshow(np.array(img), cmap='gist_gray')
-
-		# Basic Data Augmentation - Upside down and Horizontal Flipping
-		# flip_up_down_img = rgb_image.copy()
-		# flip_up_down_img = np.flipud(flip_up_down_img)
-		# data.append([flip_up_down_img,  label['classification_label']])
-		#
-		# flip_lr_img = rgb_image.copy()
-		# flip_lr_img = np.array(flip_lr_img)
-		# flip_lr_img = np.fliplr(flip_lr_img)
-		# data.append([flip_lr_img,  label['classification_label']])
-
-		#plt.show()
 
 	# shuffeling the collection
 	data = shuffle(data)

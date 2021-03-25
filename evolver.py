@@ -3,7 +3,7 @@ Class that holds a genetic algorithm for evolving a network.
 
 Inspiration:
 
-    http://lethain.com/genetic-algorithms-cool-name-damn-simple/
+	http://lethain.com/genetic-algorithms-cool-name-damn-simple/
 """
 from __future__ import print_function
 
@@ -19,243 +19,246 @@ from allgenomes import AllGenomes
 
 
 class Evolver():
-    """Class that implements genetic algorithm."""
+	"""Class that implements genetic algorithm."""
 
-    def __init__(self, all_possible_genes, retain=0.15, random_select=0.1, mutate_chance=0.25):
-        """Create an optimizer.
+	def __init__(self, all_possible_genes, retain=0.15, random_select=0.1, mutate_chance=0.25):
+		"""Create an optimizer.
 
-        Args:
-            all_possible_genes (dict): Possible genome parameters
-            retain (float): Percentage of population to retain after
-                each generation
-            random_select (float): Probability of a rejected genome
-                remaining in the population
-            mutate_chance (float): Probability a genome will be
-                randomly mutated
+		Args:
+			all_possible_genes (dict): Possible genome parameters
+			retain (float): Percentage of population to retain after
+				each generation
+			random_select (float): Probability of a rejected genome
+				remaining in the population
+			mutate_chance (float): Probability a genome will be
+				randomly mutated
 
-        """
+		"""
 
-        self.all_possible_genes = all_possible_genes
-        self.retain             = retain
-        self.random_select      = random_select
-        self.mutate_chance      = mutate_chance
+		self.all_possible_genes = all_possible_genes
+		self.retain             = retain
+		self.random_select      = random_select
+		self.mutate_chance      = mutate_chance
 
-        #set the ID gen
-        self.ids = IDgen()
-        
-    def create_population(self, count):
-        """Create a population of random networks.
+		#set the ID gen
+		self.ids = IDgen()
 
-        Args:
-            count (int): Number of networks to generate, aka the
-                size of the population
+	def create_population(self, count):
+		"""Create a population of random networks.
 
-        Returns:
-            (list): Population of network objects
+		Args:
+			count (int): Number of networks to generate, aka the
+				size of the population
 
-        """
-        pop = []
+		Returns:
+			(list): Population of network objects
 
-        i = 0
+		"""
+		pop = []
 
-        while i < count:
-            
-            # Initialize a new genome.
-            genome = Genome( self.all_possible_genes, {}, self.ids.get_next_ID(), 0, 0, self.ids.get_Gen() )
+		i = 0
 
-            # Set it to random parameters.
-            genome.set_genes_random()
+		while i < count:
 
-            if i == 0:
-                #this is where we will store all genomes
-                self.master = AllGenomes( genome )
-            else:
-                # Make sure it is unique....
-                while self.master.is_duplicate( genome ):
-                    genome.mutate_one_gene()
+			# Initialize a new genome.
+			genome = Genome( self.all_possible_genes, {}, self.ids.get_next_ID(), 0, 0, self.ids.get_Gen() )
 
-            # Add the genome to our population.
-            pop.append(genome)
+			# Set it to random parameters.
+			genome.set_genes_random()
 
-            # and add to the master list
-            if i > 0:
-                self.master.add_genome(genome)
+			if i == 0:
+				#this is where we will store all genomes
+				self.master = AllGenomes( genome )
+			else:
+				# Make sure it is unique....
+				while self.master.is_duplicate( genome ):
+					genome.mutate_one_gene()
 
-            i += 1
+			# Add the genome to our population.
+			pop.append(genome)
 
-        #self.master.print_all_genomes()
-        
-        #exit()
+			# and add to the master list
+			if i > 0:
+				self.master.add_genome(genome)
 
-        return pop
+			i += 1
 
-    @staticmethod
-    def fitness(genome):
-        """Return the accuracy, which is our fitness function."""
-        return genome.accuracy
+		#self.master.print_all_genomes()
 
-    def grade(self, pop):
-        """Find average fitness for a population.
+		#exit()
 
-        Args:
-            pop (list): The population of networks/genome
+		return pop
 
-        Returns:
-            (float): The average accuracy of the population
+	@staticmethod
+	def fitness(genome):
+		"""Return the accuracy, which is our fitness function."""
+		return genome.accuracy
 
-        """
-        summed = reduce(add, (self.fitness(genome) for genome in pop))
-        return summed / float((len(pop)))
+	def grade(self, pop):
+		"""Find average fitness for a population.
 
-    def breed(self, mom, dad):
-        """Make two children from parental genes.
+		Args:
+			pop (list): The population of networks/genome
 
-        Args:
-            mother (dict): genome parameters
-            father (dict): genome parameters
+		Returns:
+			(float): The average accuracy of the population
 
-        Returns:
-            (list): Two network objects
+		"""
+		summed = reduce(add, (self.fitness(genome) for genome in pop))
+		return summed / float((len(pop)))
 
-        """
-        children = []
+	def breed(self, mom, dad):
+		"""Make two children from parental genes.
 
-        #where do we recombine? 0, 1, 2, 3, 4... N?
-        #with four genes, there are three choices for the recombination
-        # ___ * ___ * ___ * ___ 
-        #0 -> no recombination, and N == length of dictionary -> no recombination
-        #0 and 4 just (re)create more copies of the parents
-        #so the range is always 1 to len(all_possible_genes) - 1
-        pcl = len(self.all_possible_genes)
-        # the recomb_loc is the index where we decide to recombine and switch between mom and dad's genes
-        recomb_loc = random.randint(1,pcl - 1) 
+		Args:
+			mother (dict): genome parameters
+			father (dict): genome parameters
 
-        #for _ in range(2): #make _two_ children - could also make more
-        child1 = {}
-        child2 = {}
+		Returns:
+			(list): Two network objects
 
-        #enforce defined genome order using list 
-        #keys = ['nb_neurons', 'nb_layers', 'activation', 'optimizer']
-        keys = list(self.all_possible_genes)
-        keys = sorted(keys) #paranoia - just to make sure we do not add unintentional randomization
+		"""
+		children = []
 
-        #*** CORE RECOMBINATION CODE ****
-        for x in range(0, pcl):
-            if x < recomb_loc:
-                child1[keys[x]] = mom.geneparam[keys[x]]
-                child2[keys[x]] = dad.geneparam[keys[x]]
-            else:
-                child1[keys[x]] = dad.geneparam[keys[x]]
-                child2[keys[x]] = mom.geneparam[keys[x]]
+		#where do we recombine? 0, 1, 2, 3, 4... N?
+		#with four genes, there are three choices for the recombination
+		# ___ * ___ * ___ * ___
+		#0 -> no recombination, and N == length of dictionary -> no recombination
+		#0 and 4 just (re)create more copies of the parents
+		#so the range is always 1 to len(all_possible_genes) - 1
+		pcl = len(self.all_possible_genes)
+		# the recomb_loc is the index where we decide to recombine and switch between mom and dad's genes
+		recomb_loc = random.randint(1,pcl - 1)
 
-        # Initialize a new genome
-        # Set its parameters to those just determined
-        # they both have the same mom and dad
-        genome1 = Genome( self.all_possible_genes, child1, self.ids.get_next_ID(), mom.u_ID, dad.u_ID, self.ids.get_Gen() )
-        genome2 = Genome( self.all_possible_genes, child2, self.ids.get_next_ID(), mom.u_ID, dad.u_ID, self.ids.get_Gen() )
+		#for _ in range(2): #make _two_ children - could also make more
+		child1 = {}
+		child2 = {}
 
-        #at this point, there is zero guarantee that the genome is actually unique
+		#enforce defined genome order using list
+		#keys = ['nb_neurons', 'nb_layers', 'activation', 'optimizer']
+		keys = list(self.all_possible_genes)
+		keys = sorted(keys) #paranoia - just to make sure we do not add unintentional randomization
 
-        # Randomly mutate one gene
-        if self.mutate_chance > random.random(): 
-        	genome1.mutate_one_gene()
+		#*** CORE RECOMBINATION CODE ****
+		for x in range(0, pcl):
+			if x < recomb_loc:
+				child1[keys[x]] = mom.geneparam[keys[x]]
+				child2[keys[x]] = dad.geneparam[keys[x]]
+			else:
+				child1[keys[x]] = dad.geneparam[keys[x]]
+				child2[keys[x]] = mom.geneparam[keys[x]]
 
-        if self.mutate_chance > random.random(): 
-        	genome2.mutate_one_gene()
+		# Initialize a new genome
+		# Set its parameters to those just determined
+		# they both have the same mom and dad
+		genome1 = Genome( self.all_possible_genes, child1, self.ids.get_next_ID(), mom.u_ID, dad.u_ID, self.ids.get_Gen() )
+		genome2 = Genome( self.all_possible_genes, child2, self.ids.get_next_ID(), mom.u_ID, dad.u_ID, self.ids.get_Gen() )
 
-        #do we have a unique child or are we just retraining one we already have anyway?
-        while self.master.is_duplicate(genome1):
-            genome1.mutate_one_gene()
+		#at this point, there is zero guarantee that the genome is actually unique
 
-        self.master.add_genome(genome1)
-        
-        while self.master.is_duplicate(genome2):
-            genome2.mutate_one_gene()
+		# Randomly mutate one gene
+		if self.mutate_chance > random.random():
+			genome1.mutate_one_gene()
 
-        self.master.add_genome(genome2)
-        
-        children.append(genome1)
-        children.append(genome2)
+		if self.mutate_chance > random.random():
+			genome2.mutate_one_gene()
 
-        return children
+		#do we have a unique child or are we just retraining one we already have anyway?
+		while self.master.is_duplicate(genome1):
+			genome1.mutate_one_gene()
 
-    def evolve(self, pop):
-        """Evolve a population of genomes.
+		self.master.add_genome(genome1)
 
-        Args:
-            pop (list): A list of genome parameters
+		while self.master.is_duplicate(genome2):
+			genome2.mutate_one_gene()
 
-        Returns:
-            (list): The evolved population of networks
+		self.master.add_genome(genome2)
 
-        """
-        #increase generation 
-        self.ids.increase_Gen()
+		children.append(genome1)
+		children.append(genome2)
 
-        # Get scores for each genome
-        graded = [(self.fitness(genome), genome) for genome in pop]
+		return children
 
-        #and use those scores to fill in the master list
-        for genome in pop:
-            self.master.set_accuracy(genome)
+	def evolve(self, pop):
+		"""Evolve a population of genomes.
 
-        # Sort on the scores.
-        graded = [x[1] for x in sorted(graded, key=lambda x: x[0], reverse=True)]
+		Args:
+			pop (list): A list of genome parameters
 
-        # Get the number we want to keep unchanged for the next cycle.
-        retain_length = int(len(graded)*self.retain)
-        if retain_length == 0 or retain_length == 1:
-            #keep at list 3 best individuals from last generation to the new one.
-            retain_length = 3
-        # In this first step, we keep the 'top' X percent (as defined in self.retain)
-        # We will not change them, except we will update the generation
-        new_generation = graded[:retain_length]
+		Returns:
+			(list): The evolved population of networks
 
-        # For the lower scoring ones, randomly keep some anyway.
-        # This is wasteful, since we _know_ these are bad, so why keep rescoring them without modification?
-        # At least we should mutate them
-        for genome in graded[retain_length:]:
-            if self.random_select > random.random():
-                gtc = copy.deepcopy(genome)
-                
-                while self.master.is_duplicate(gtc):
-                    gtc.mutate_one_gene()
+		"""
+		#increase generation
+		self.ids.increase_Gen()
 
-                gtc.set_generation( self.ids.get_Gen() )
-                new_generation.append(gtc)
-                self.master.add_genome(gtc)
-        
-        # Now find out how many spots we have left to fill.
-        ng_length      = len(new_generation)
+		# Get scores for each genome
+		graded = [(self.fitness(genome), genome) for genome in pop]
 
-        desired_length = len(pop) - ng_length
+		#and use those scores to fill in the master list
+		for genome in pop:
+			self.master.set_accuracy(genome)
 
-        children       = []
+		# Sort on the scores.
+		graded = [x[1] for x in sorted(graded, key=lambda x: x[0], reverse=True)]
 
-        # Add children, which are bred from pairs of remaining (i.e. very high or lower scoring) genomes.
-        while len(children) < desired_length:
-            # Get a random mom and dad, but, need to make sure they are distinct
-            if ng_length == 0:
-                print("##### ng_length is negative - there are no ones to keep from this gen to the next ###")
-                break
-            parents  = random.sample(range(ng_length-1), k=2)
-            
-            i_male   = parents[0]
-            i_female = parents[1]
+		# Get the number we want to keep unchanged for the next cycle.
+		retain_length = int(len(graded)*self.retain)
+		if retain_length == 0 or retain_length == 1:
+			#keep at list 3 best individuals from last generation to the new one.
+			retain_length = 3
+		# In this first step, we keep the 'top' X percent (as defined in self.retain)
+		# We will not change them, except we will update the generation
+		new_generation = graded[:retain_length]
 
-            male   = new_generation[i_male]
-            female = new_generation[i_female]
+		# For the lower scoring ones, randomly keep some anyway.
+		# This is wasteful, since we _know_ these are bad, so why keep rescoring them without modification?
+		# At least we should mutate them
+		for genome in graded[retain_length:]:
+			if self.random_select > random.random():
+				gtc = copy.deepcopy(genome)
 
-            # Recombine and mutate
-            babies = self.breed(male, female)
-            # the babies are guaranteed to be novel
+				while self.master.is_duplicate(gtc):
+					gtc.mutate_one_gene()
 
-            # Add the children one at a time.
-            for baby in babies:
-                # Don't grow larger than desired length.
-                #if len(children) < desired_length:
-                children.append(baby)
+				gtc.set_generation( self.ids.get_Gen() )
+				new_generation.append(gtc)
+				self.master.add_genome(gtc)
 
-        new_generation.extend(children)
+		# Now find out how many spots we have left to fill.
+		ng_length      = len(new_generation)
 
-        return new_generation
+		desired_length = len(pop) - ng_length
+
+		children       = []
+
+		# Add children, which are bred from pairs of remaining (i.e. very high or lower scoring) genomes.
+		while len(children) < desired_length:
+			# Get a random mom and dad, but, need to make sure they are distinct
+			if ng_length == 0:
+				print("##### ng_length is negative - there are no ones to keep from this gen to the next ###")
+				break
+			parents  = random.sample(range(ng_length-1), k=2)
+
+			i_male   = parents[0]
+			i_female = parents[1]
+
+			male   = new_generation[i_male]
+			female = new_generation[i_female]
+
+			# Recombine and mutate
+			babies = self.breed(male, female)
+			# the babies are guaranteed to be novel
+			# add only the number of children that is needed to keep the same population size
+			for i in range (0, desired_length):
+				children.append(babies[i])
+
+			# Add the children one at a time.
+			for baby in babies:
+				# Don't grow larger than desired length.
+				#if len(children) < desired_length:
+				children.append(baby)
+
+		new_generation.extend(children)
+
+		return new_generation

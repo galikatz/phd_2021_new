@@ -58,8 +58,8 @@ def get_best_genome(genomes):
 	return best_genome
 
 
-def generate(generations, population, all_possible_genes, dataset, mode, mode_th, images_dir,
-			 stopping_th, epochs, debug_mode, congruency, equate, savedir, index,
+def generate(generations, generation_index, population, all_possible_genes, dataset, mode, mode_th, images_dir,
+			 stopping_th, epochs, debug_mode, congruency, equate, savedir, index, already_switched,
 			 genomes=None, evolver=None):
 	"""Generate a network with the genetic algorithm.
 
@@ -77,12 +77,11 @@ def generate(generations, population, all_possible_genes, dataset, mode, mode_th
 		genomes = evolver.create_population(population)
 
 	# Evolve the generation.
-	already_switched = False
 	if mode == 'both':
 		actual_mode = 'size' #we start with size, than switch to counting
 	else:
 		actual_mode = mode
-	for i in range(1, generations + 1):
+	for i in range(generation_index, generations + 1):
 		### Every new generation we create new stimuli ###
 		images_dir_per_gen = images_dir + "_" + str(i)
 
@@ -93,7 +92,7 @@ def generate(generations, population, all_possible_genes, dataset, mode, mode_th
 			#now generate the next dir
 			generate_new_images(congruency, equate, savedir, i)
 
-		logging.info("*** Now in mode %s generation %d of %d reading images from dir: %s ***" % (actual_mode, i, generations, images_dir_per_gen))
+		logging.info("********* Now in mode %s generation %d of %d reading images from dir: %s *********" % (actual_mode, i, generations, images_dir_per_gen))
 
 		print_genomes(genomes)
 
@@ -110,20 +109,19 @@ def generate(generations, population, all_possible_genes, dataset, mode, mode_th
 					if already_switched:
 						logging.info("Done training! average_accuracy is %s" % str(best_accuracy))
 						break
-					logging.info('********** SWITCHING TO COUNTING, ACCURACY: %s' % str(best_accuracy))
-					actual_mode = 'count'
-					#we have to reset the accuracy before training a new task.
-					for genome in genomes:
-						genome.accuracy = 0.0
-						genome.val_loss = 1.0
-					#notice - recursion
-					generate(generations, population, all_possible_genes, dataset, actual_mode, mode_th,
-							 images_dir, stopping_th, epochs, debug_mode,
-							 congruency, equate, savedir, index,
-							 genomes, evolver)
-					already_switched = True
-			else:
-				actual_mode='size'
+
+				logging.info('********** SWITCHING TO COUNTING, ACCURACY: %s **********' % str(best_accuracy))
+				actual_mode = 'count'
+				# we have to reset the accuracy before training a new task.
+				for genome in genomes:
+					genome.accuracy = 0.0
+					genome.val_loss = 1.0
+
+				# notice - recursion
+				generate(generations, i , population, all_possible_genes, dataset, actual_mode, mode_th,
+						 images_dir, stopping_th, epochs, debug_mode,
+						 congruency, equate, savedir, index, True,
+						 genomes, evolver)
 
 		# Print out the average accuracy each generation.
 		logging.info("Generation best accuracy: %.2f%% and loss: %.2f%%" % (best_accuracy * 100, best_loss))
@@ -131,7 +129,7 @@ def generate(generations, population, all_possible_genes, dataset, mode, mode_th
 
 		# Evolve, except on the last iteration.
 		if i != generations:
-			logging.info("Evolving!")
+			logging.info("Evolving! - mutation and recombination")
 			genomes = evolver.evolve(genomes)
 
 	logging.info("End of generations loop - evolution is over, best accuracy: %.2f%% and loss: %.2f%%" % (best_accuracy * 100, best_loss))
@@ -261,13 +259,13 @@ def main(args):
 	else:
 		dataset = 'mnist_mlp'
 
-	print("***Dataset:", dataset)
+	print("*** Dataset:", dataset)
 
 
 	if dataset == 'size_count':
 		generations = args.gens  # Number of times to evolve the population.
 		all_possible_genes = {
-			'nb_neurons': [16, 32, 64, 128],
+			'nb_neurons': [16, 32, 64, 128, 256, 512],
 			'nb_layers': [1, 2, 3, 4, 5],
 			'activation': ['relu', 'elu', 'tanh', 'sigmoid', 'hard_sigmoid', 'softplus', 'linear'],
 			'optimizer': ['rmsprop', 'adam', 'sgd', 'adagrad', 'adadelta', 'adamax', 'nadam']
@@ -291,9 +289,9 @@ def main(args):
 
 	print("*** Evolving for %d generations with population size = %d ***" % (generations, population))
 
-	generate(generations, population, all_possible_genes, dataset,
+	generate(generations, 1, population, all_possible_genes, dataset,
 			 args.mode, args.mode_th, args.images_dir, args.stopping_th, args.epochs, args.debug,
-			 args.congruency, args.equate, args.savedir, args.index)
+			 args.congruency, args.equate, args.savedir, args.index, False)
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='evolve arguments')
