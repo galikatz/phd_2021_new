@@ -10,6 +10,13 @@ def main(arguments):
 	eng.quit()
 
 
+def generate_new_images(congruency, equate, savedir, index):
+	eng = matlab.engine.start_matlab()
+	eng.addpath('/Users/gali.k/phd/Genereating_dot_arrays')
+	eng.pipeline_from_python(congruency, equate, savedir, str(index), nargout=0)
+	eng.quit()
+
+
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='evolve arguments')
 	parser.add_argument('--congruency', dest='congruency', type=int, required=True,
@@ -20,4 +27,3 @@ if __name__ == '__main__':
 	parser.add_argument('--index', dest='index', type=str, required=True, help='The save dir index = generation index')
 	args = parser.parse_args()
 	main(args)
-

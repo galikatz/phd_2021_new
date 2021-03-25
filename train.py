@@ -9,7 +9,7 @@ and also on
 """
 
 import random
-
+import glob
 import cv2
 from imutils import paths
 from keras.datasets import mnist, cifar10
@@ -29,7 +29,7 @@ import logging
 import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
-from classification_2020.classify import get_size_count_new
+from classify import get_size_count_new
 from datetime import datetime
 from keras.utils.vis_utils import plot_model
 matplotlib.use('TkAgg')
@@ -37,88 +37,6 @@ matplotlib.use('TkAgg')
 
 # Helper: Early stopping.
 early_stopper = EarlyStopping(monitor='val_loss', min_delta=0.1, patience=2, verbose=0, mode='auto')
-
-
-# patience=5)
-# monitor='val_loss',patience=2,verbose=0
-
-def get_cifar10_mlp():
-	"""Retrieve the CIFAR dataset and process the data."""
-	# Set defaults.
-	nb_classes = 10  # dataset dependent
-	batch_size = 64
-	epochs = 2
-	input_shape = (3072,)  # because it's RGB
-
-	# Get the data.
-	(x_train, y_train), (x_test, y_test) = cifar10.load_data()
-	x_train = x_train.reshape(50000, 3072)
-	x_test = x_test.reshape(10000, 3072)
-	x_train = x_train.astype('float32')
-	x_test = x_test.astype('float32')
-	x_train /= 255
-	x_test /= 255
-
-	# convert class vectors to binary class matrices
-	y_train = to_categorical(y_train, nb_classes)
-	y_test = to_categorical(y_test, nb_classes)
-
-	return (nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, epochs)
-
-
-def get_cifar10_cnn():
-	"""Retrieve the MNIST dataset and process the data."""
-	# Set defaults.
-	nb_classes = 10  # dataset dependent
-	batch_size = 128
-	epochs = 4
-
-	# the data, shuffled and split between train and test sets
-	(x_train, y_train), (x_test, y_test) = cifar10.load_data()
-
-	# convert class vectors to binary class matrices
-	y_train = to_categorical(y_train, nb_classes)
-	y_test = to_categorical(y_test, nb_classes)
-
-	# x._train shape: (50000, 32, 32, 3)
-	# input shape (32, 32, 3)
-	input_shape = x_train.shape[1:]
-
-	# print('x_train shape:', x_train.shape)
-	# print(x_train.shape[0], 'train samples')
-	# print(x_test.shape[0], 'test samples')
-	# print('input shape', input_shape)
-
-	x_train = x_train.astype('float32')
-	x_test = x_test.astype('float32')
-	x_train /= 255
-	x_test /= 255
-
-	return (nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, epochs)
-
-
-def get_mnist_mlp():
-	"""Retrieve the MNIST dataset and process the data."""
-	# Set defaults.
-	nb_classes = 10  # dataset dependent
-	batch_size = 64
-	epochs = 4
-	input_shape = (784,)
-
-	# Get the data.
-	(x_train, y_train), (x_test, y_test) = mnist.load_data()
-	x_train = x_train.reshape(60000, 784)
-	x_test = x_test.reshape(10000, 784)
-	x_train = x_train.astype('float32')
-	x_test = x_test.astype('float32')
-	x_train /= 255
-	x_test /= 255
-
-	# convert class vectors to binary class matrices
-	y_train = to_categorical(y_train, nb_classes)
-	y_test = to_categorical(y_test, nb_classes)
-
-	return (nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, epochs)
 
 
 def load_size_count_data(mode, path, current_generation):
@@ -160,13 +78,8 @@ def load_size_count_data(mode, path, current_generation):
 		final_labels = np.array(size_labels)
 	else:
 		final_labels = np.array(counting_labels)
-	# print("[INFO] data matrix: {:.2f}MB".format(
-	#     data.nbytes / (1024 * 1000.0)))
 
 	(x_train, x_test, Y_train, Y_test) = train_test_split(final_data, final_labels, test_size=0.2, random_state=101)
-
-	# prepare_and_plot_dist(mode, Y_train, Y_test, current_generation)
-
 	return (x_train, Y_train), (x_test, Y_test)
 
 
@@ -426,21 +339,20 @@ def compile_model_cnn(genome, nb_classes, input_shape):
 	return model
 
 
-def plot_genome_after_training_on_epochs_is_done(genome, mode, curr_epoch, val_acc, val_loss, train_acc, train_loss, date):
+def plot_genome_after_training_on_epochs_is_done(genome, mode, epochs, val_acc, val_loss, train_acc, train_loss, date, best_accuracy, best_loss):
 	# plot the training loss and accuracy
 	plt.style.use("ggplot")
 	plt.figure()
 	# using in case it stopped with early stopping
-	plt.plot(np.arange(1, curr_epoch+1, 1), train_loss, label="train_loss")
-	plt.plot(np.arange(1, curr_epoch+1, 1), val_loss, label="val_loss")
-	plt.plot(np.arange(1, curr_epoch+1, 1), train_acc, label="train_acc")
-	plt.plot(np.arange(1, curr_epoch+1, 1), val_acc, label="val_acc")
+	plt.plot(np.arange(1,epochs+1), train_loss, label="train_loss")
+	plt.plot(np.arange(1,epochs+1), val_loss, label="val_loss")
+	plt.plot(np.arange(1,epochs+1), train_acc, label="train_acc")
+	plt.plot(np.arange(1,epochs+1), val_acc, label="val_acc")
 	plt.title("Training Loss and Accuracy: {mode}".format(mode=mode))
 	plt.xlabel("Epochs")
 	plt.ylabel("Loss/Accuracy")
 	plt.legend(loc="upper left")
-	plt.savefig(
-		"{}_training_plot_mode_{}_gen_{}_individual_{}_epoch_{}".format(date, mode, genome.generation, genome.u_ID, curr_epoch))
+	plt.savefig("models/best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}.jpg".format(date, mode, genome.generation, genome.u_ID, best_accuracy, best_loss))
 
 
 def train_and_score(genome, dataset, mode, path, epochs, debug_mode, mode_th, max_val_accuracy, min_val_loss):
@@ -454,27 +366,10 @@ def train_and_score(genome, dataset, mode, path, epochs, debug_mode, mode_th, ma
 
 	if dataset == 'size_count':
 		nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, epochs = get_size_count_new(mode, path, epochs, mode_th, max_val_accuracy)
-	# nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, epochs = get_size_count(mode, path, epochs, genome.generation)
-	elif dataset == 'cifar10_mlp':
-		nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, epochs = get_cifar10_mlp()
-	elif dataset == 'cifar10_cnn':
-		nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, epochs = get_cifar10_cnn()
-	elif dataset == 'mnist_mlp':
-		nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, epochs = get_mnist_mlp()
-	elif dataset == 'mnist_cnn':
-		nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, epochs = get_mnist_cnn()
 
 	logging.info("Compling Keras model")
 
 	if dataset == 'size_count':
-		model = compile_model_cnn(genome, nb_classes, input_shape)
-	elif dataset == 'cifar10_mlp':
-		model = compile_model_mlp(genome, nb_classes, input_shape)
-	elif dataset == 'cifar10_cnn':
-		model = compile_model_cnn(genome, nb_classes, input_shape)
-	elif dataset == 'mnist_mlp':
-		model = compile_model_mlp(genome, nb_classes, input_shape)
-	elif dataset == 'mnist_cnn':
 		model = compile_model_cnn(genome, nb_classes, input_shape)
 
 	# prints the model
@@ -491,49 +386,49 @@ def train_and_score(genome, dataset, mode, path, epochs, debug_mode, mode_th, ma
 
 	score = model.evaluate(x_test, y_test, verbose=0)
 
-	print('Test loss:', score[0])
-	print('Test accuracy:', score[1])
+	best_current_val_loss = round(score[0],3)
+	best_current_val_accuracy = round(score[1],3)
+	print('Best current test loss from all epochs:', best_current_val_loss) # takes the minimum loss from all the epochs
+	print('Best current test accuracy from all epochs based on minimal loss:', best_current_val_accuracy) # taking the accuracy of the minimal loss above.
 
-	# this is the list of all the epochs scores of the current generation
-	train_loss = history.history["loss"]
-	val_loss = history.history["val_loss"]
-	train_acc = history.history["accuracy"]
-	val_acc = history.history["val_accuracy"]
-
-	# we do not care about keeping any of this in memory -
-	# we just need to know the final scores and the architecture
-
-	# best_genome = get_best_genome(genomes)
-	curr_epoch = len(val_loss)
-
-	print(model.summary())
-
-	###############################
-	# Saving the current best model
-	###############################
-	if max_val_accuracy < val_acc[-1]:
+	############################################################################################################################
+	# Saving the best model from all individuals and deleting the unecessary ones, but will return the current individual result.
+	############################################################################################################################
+	# we save the model only if the accuracy is better than what we currently have
+	if max_val_accuracy < best_current_val_accuracy:
+		max_val_accuracy = best_current_val_accuracy
+		min_val_loss = best_current_val_loss
 		# serialize model to JSON
 		model_json = model.to_json()
-		date = datetime.strftime(datetime.now(), '%Y-%m-%d_%H:%M:%S')
+		date = datetime.strftime(datetime.now(), '%Y-%m-%d_%H')
 		if mode == 'both':
 			mode_name = 'size'
 		else:
 			mode_name = mode
 
-		with open("{}_model_{}_gen_{}_pop_{}_epochs_{}_acc_{}_loss_{}.json".format(date, mode_name, genome.generation, genome.u_ID, curr_epoch, round(val_acc[-1],3), round(val_loss[-1],3)),"w") as json_file:
+		#delete old files from today because we have better results:
+		old_models_path = "models/best_model_{}_mode_{}*.*".format(date, mode)
+		for f in glob.glob(old_models_path):
+			os.remove(f)
+
+		with open("models/best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}.json".format(date, mode_name, genome.generation, genome.u_ID, max_val_accuracy, min_val_loss),"w") as json_file:
 			json_file.write(model_json)
 		# serialize weights to HDF5
-		file_name = "{}_model_{}_gen_{}_pop_{}_epochs_{}_acc_{}_loss_{}".format(date, mode_name, genome.generation, genome.u_ID, curr_epoch,round(val_acc[-1],3), round(val_loss[-1],3))
+		file_name = "models/best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}".format(date, mode_name, genome.generation, genome.u_ID, max_val_accuracy, min_val_loss)
 		model.save(file_name + ".h5")
 		if debug_mode:
-			plot_genome_after_training_on_epochs_is_done(genome, mode_name, curr_epoch, val_acc, val_loss, train_acc, train_loss, date)
+			# this is the list of all the epochs scores of the current generation - for plotting
+			train_loss = history.history["loss"]
+			val_loss = history.history["val_loss"]
+			train_acc = history.history["accuracy"]
+			val_acc = history.history["val_accuracy"]
+			plot_genome_after_training_on_epochs_is_done(genome, mode_name, epochs, val_acc, val_loss, train_acc, train_loss, date, max_val_accuracy, min_val_loss)
 			#plot_model(model, to_file=file_name+'.png', show_shapes=True, show_layer_names=True)
-
 
 
 	K.clear_session()
 	# getting only the last values
-	return val_acc[-1], train_acc, train_loss, val_acc, val_loss  # 1 is accuracy. 0 is loss.
+	return best_current_val_accuracy, best_current_val_loss
 
 
 class LossHistory(Callback):

@@ -21,7 +21,7 @@ from allgenomes import AllGenomes
 class Evolver():
     """Class that implements genetic algorithm."""
 
-    def __init__(self, all_possible_genes, retain=0.15, random_select=0.1, mutate_chance=0.3):
+    def __init__(self, all_possible_genes, retain=0.15, random_select=0.1, mutate_chance=0.25):
         """Create an optimizer.
 
         Args:
@@ -127,7 +127,7 @@ class Evolver():
         #0 and 4 just (re)create more copies of the parents
         #so the range is always 1 to len(all_possible_genes) - 1
         pcl = len(self.all_possible_genes)
-        
+        # the recomb_loc is the index where we decide to recombine and switch between mom and dad's genes
         recomb_loc = random.randint(1,pcl - 1) 
 
         #for _ in range(2): #make _two_ children - could also make more
@@ -204,7 +204,9 @@ class Evolver():
 
         # Get the number we want to keep unchanged for the next cycle.
         retain_length = int(len(graded)*self.retain)
-
+        if retain_length == 0 or retain_length == 1:
+            #keep at list 3 best individuals from last generation to the new one.
+            retain_length = 3
         # In this first step, we keep the 'top' X percent (as defined in self.retain)
         # We will not change them, except we will update the generation
         new_generation = graded[:retain_length]

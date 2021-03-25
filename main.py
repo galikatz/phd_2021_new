@@ -1,21 +1,15 @@
 """Entry point to evolving the neural network. Start here."""
 from __future__ import print_function
-
 from evolver import Evolver
-import idgen
-from stimuli_generator import create_stimuli
-
 from tqdm import tqdm
-
 import logging
 import argparse
 import os
-import numpy as np
 import pandas as pd
 import seaborn as sns
-import sys
 import matplotlib.pyplot as plt
-
+from create_images_from_matlab import generate_new_images
+import shutil
 
 # Setup logging.
 logging.basicConfig(
@@ -27,39 +21,25 @@ logging.basicConfig(
 
 
 def train_genomes(genomes, dataset, mode, path, epochs, debug_mode, mode_th):
-	"""Train each genome.
-
-	Args:
-		networks (list): Current population of genomes
-		dataset (str): Dataset to use for training/evaluating
-
-	"""
-	logging.info("*** train_networks(networks, dataset) ***")
-	logging.info("*** total population size: *** %s" % len(genomes))
+	logging.info("*** Going to train %s individuals ***" % len(genomes))
 	pbar = tqdm(total=len(genomes))
+	individual_index = 1
+	best_individual_acc = 0.0
+	best_individual_loss = 1.0
 	for genome in genomes:
-		genome.train(dataset, mode, path, epochs, debug_mode, mode_th)
+		logging.info("*** Training individual #%s ***" % individual_index)
+		curr_individual_acc, curr_individual_loss = genome.train(dataset, mode, path, epochs, debug_mode, mode_th, best_individual_acc, best_individual_loss)
+		if best_individual_acc < curr_individual_acc:
+			best_individual_acc = curr_individual_acc
+			best_individual_loss = curr_individual_loss
+		elif best_individual_acc == curr_individual_acc and best_individual_loss > curr_individual_loss:
+			best_individual_acc = curr_individual_acc
+			best_individual_loss = curr_individual_loss
 		pbar.update(1)
+		individual_index += 1
 
 	pbar.close()
-
-def get_average_accuracy(genomes):
-	"""Get the average accuracy for a group of networks/genomes.
-
-	Args:
-		networks (list): List of networks/genomes
-
-	Returns:
-		float: The average accuracy of a population of networks/genomes.
-
-	"""
-	total_accuracy = 0
-
-	for genome in genomes:
-		total_accuracy += genome.accuracy
-
-	return total_accuracy / len(genomes)
-
+	return best_individual_acc, best_individual_loss
 
 def get_best_genome(genomes):
 	"""
@@ -78,7 +58,9 @@ def get_best_genome(genomes):
 	return best_genome
 
 
-def generate(generations, population, all_possible_genes, dataset, mode, mode_th, images_dir, stopping_th, epochs, debug_mode, genomes=None, evolver=None):
+def generate(generations, population, all_possible_genes, dataset, mode, mode_th, images_dir,
+			 stopping_th, epochs, debug_mode, congruency, equate, savedir, index,
+			 genomes=None, evolver=None):
 	"""Generate a network with the genetic algorithm.
 
 	Args:
@@ -88,7 +70,7 @@ def generate(generations, population, all_possible_genes, dataset, mode, mode_th
 		dataset (str): Dataset to use for training/evaluating
 
 	"""
-	logging.info("*** mode={}, mode_th={}, generations={}, population={}, epochs={}, stopping_th={})***".format(mode, mode_th, generations, population, epochs, stopping_th))
+	logging.info("*** Configuration: mode={}, mode_th={}, generations={}, population={}, epochs={}, stopping_th={})***".format(mode, mode_th, generations, population, epochs, stopping_th))
 
 	if not genomes:
 		evolver = Evolver(all_possible_genes)
@@ -96,63 +78,68 @@ def generate(generations, population, all_possible_genes, dataset, mode, mode_th
 
 	# Evolve the generation.
 	already_switched = False
-	for i in range(1, generations):
-		images_dir_per_gen = images_dir
-		logging.info("*** Now in generation %d of %d reading images from dir: %s ***" % (i, generations, images_dir_per_gen))
+	if mode == 'both':
+		actual_mode = 'size' #we start with size, than switch to counting
+	else:
+		actual_mode = mode
+	for i in range(1, generations + 1):
+		### Every new generation we create new stimuli ###
+		images_dir_per_gen = images_dir + "_" + str(i)
+
+		if not os.path.exists(images_dir_per_gen):
+			#delete old images
+			if os.path.exists(images_dir + "_" + str(i-1)):
+				shutil.rmtree(images_dir + "_" + str(i-1))
+			#now generate the next dir
+			generate_new_images(congruency, equate, savedir, i)
+
+		logging.info("*** Now in mode %s generation %d of %d reading images from dir: %s ***" % (actual_mode, i, generations, images_dir_per_gen))
 
 		print_genomes(genomes)
-		train_genomes(genomes, dataset, mode, images_dir_per_gen, epochs, debug_mode, mode_th)
 
-		# Get the average accuracy for this generation.
-		average_accuracy = get_average_accuracy(genomes)
+		# Train and Get the best accuracy for this generation from all individuals.
+		best_accuracy, best_loss = train_genomes(genomes, dataset, actual_mode, images_dir_per_gen, epochs, debug_mode, mode_th)
 
-		if mode != "both" and average_accuracy >= stopping_th:
-			logging.info("Done training! average_accuracy is %s" % str(average_accuracy))
+		if mode != "both" and best_accuracy >= stopping_th:
+			logging.info("Done training! average_accuracy is %s" % str(best_accuracy))
 			break
 
 		if mode == "both": # this is for the first time before the switch (no recursion)
-			if average_accuracy >= mode_th:
-				if average_accuracy >= stopping_th:
-						if already_switched:
-							logging.info("Done training! average_accuracy is %s" % str(average_accuracy))
-							break
-						else:
-							logging.info('********** SWITCHING TO COUNTING, AVG POPULATION ACCURACY: %s' % str(average_accuracy))
-							# we have to reset the accuracy before training a new task.
-							for genome in genomes:
-								genome.accuracy = 0.0
-							generate(generations, population, all_possible_genes, dataset, 'count', mode_th, images_dir, stopping_th, epochs, debug_mode, genomes, evolver)
-							already_switched= True
-							#train_genomes(genomes, dataset, 'count', images_dir, epochs, debug_mode, mode_th)
-
-				else:
-					logging.info('********** SWITCHING TO COUNTING, ACCURACY: %s' % str(average_accuracy))
+			if best_accuracy >= mode_th:
+				if best_accuracy >= stopping_th:
+					if already_switched:
+						logging.info("Done training! average_accuracy is %s" % str(best_accuracy))
+						break
+					logging.info('********** SWITCHING TO COUNTING, ACCURACY: %s' % str(best_accuracy))
+					actual_mode = 'count'
 					#we have to reset the accuracy before training a new task.
 					for genome in genomes:
 						genome.accuracy = 0.0
-					generate(generations, population, all_possible_genes, dataset, 'count', mode_th, images_dir, stopping_th, epochs, debug_mode, genomes, evolver)
-					#train_genomes(genomes, dataset, 'count', images_dir, epochs, debug_mode, mode_th)
+						genome.val_loss = 1.0
+					#notice - recursion
+					generate(generations, population, all_possible_genes, dataset, actual_mode, mode_th,
+							 images_dir, stopping_th, epochs, debug_mode,
+							 congruency, equate, savedir, index,
+							 genomes, evolver)
 					already_switched = True
 			else:
-				train_genomes(genomes, dataset, 'size', images_dir, epochs, debug_mode, mode_th)
-		elif mode == "count":
-			train_genomes(genomes, dataset, 'count', images_dir, epochs, debug_mode, mode_th)
-		else:
-			train_genomes(genomes, dataset, 'size', images_dir, epochs, debug_mode, mode_th)
+				actual_mode='size'
+
 		# Print out the average accuracy each generation.
-		average_accuracy = get_average_accuracy(genomes)
-		logging.info("Generation average: %.2f%%" % (average_accuracy * 100))
+		logging.info("Generation best accuracy: %.2f%% and loss: %.2f%%" % (best_accuracy * 100, best_loss))
 		logging.info('-'*80) #-----------
 
 		# Evolve, except on the last iteration.
-		if i != generations - 1:
+		if i != generations:
 			logging.info("Evolving!")
 			genomes = evolver.evolve(genomes)
 
+	logging.info("End of generations loop - evolution is over, best accuracy: %.2f%% and loss: %.2f%%" % (best_accuracy * 100, best_loss))
 	# Sort our final population according to performance.
 	genomes = sorted(genomes, key=lambda x: x.accuracy, reverse=True)
 
 	# Print out the top 5 networks/genomes.
+	logging.info("Top 5 networks are:")
 	print_genomes(genomes[:5])
 
 
@@ -268,16 +255,7 @@ def main(args):
 	#we only need to train the new ones....
 
 	ds = args.ds
-
-	if  (ds == 1):
-		dataset = 'mnist_mlp'
-	elif (ds == 2):
-		dataset = 'mnist_cnn'
-	elif (ds == 3):
-		dataset = 'cifar10_mlp'
-	elif (ds == 4):
-		dataset = 'cifar10_cnn'
-	elif (ds==5):
+	if (ds==5):
 		dataset = 'size_count'
 		#analyze_data(args.images_dir, args.analysis_path)
 	else:
@@ -285,39 +263,8 @@ def main(args):
 
 	print("***Dataset:", dataset)
 
-	if dataset == 'mnist_cnn':
-		generations = 8 # Number of times to evolve the population.
-		all_possible_genes = {
-			'nb_neurons': [16, 32, 64, 128],
-			'nb_layers':  [1, 2, 3, 4 ,5],
-			'activation': ['relu', 'elu', 'tanh', 'sigmoid', 'hard_sigmoid','softplus','linear'],
-			'optimizer':  ['rmsprop', 'adam', 'sgd', 'adagrad','adadelta', 'adamax', 'nadam']
-		}
-	elif dataset == 'mnist_mlp':
-		generations = 8 # Number of times to evolve the population.
-		all_possible_genes = {
-			'nb_neurons': [64, 128], #, 256, 512, 768, 1024],
-			'nb_layers':  [1, 2, 3, 4, 5],
-			'activation': ['relu', 'elu', 'tanh', 'sigmoid', 'hard_sigmoid','softplus','linear'],
-			'optimizer':  ['rmsprop', 'adam', 'sgd', 'adagrad','adadelta', 'adamax', 'nadam']
-		}
-	elif dataset == 'cifar10_mlp':
-		generations = 8 # Number of times to evolve the population.
-		all_possible_genes = {
-			'nb_neurons': [64, 128, 256, 512, 768, 1024],
-			'nb_layers':  [1, 2, 3, 4, 5],
-			'activation': ['relu', 'elu', 'tanh', 'sigmoid', 'hard_sigmoid','softplus','linear'],
-			'optimizer':  ['rmsprop', 'adam', 'sgd', 'adagrad','adadelta', 'adamax', 'nadam']
-		}
-	elif dataset == 'cifar10_cnn':
-		generations = 8 # Number of times to evolve the population.
-		all_possible_genes = {
-			'nb_neurons': [16, 32, 64, 128],
-			'nb_layers':  [1, 2, 3, 4, 5],
-			'activation': ['relu', 'elu', 'tanh', 'sigmoid', 'hard_sigmoid','softplus','linear'],
-			'optimizer':  ['rmsprop', 'adam', 'sgd', 'adagrad','adadelta', 'adamax', 'nadam']
-		}
-	elif dataset == 'size_count':
+
+	if dataset == 'size_count':
 		generations = args.gens  # Number of times to evolve the population.
 		all_possible_genes = {
 			'nb_neurons': [16, 32, 64, 128],
@@ -344,7 +291,9 @@ def main(args):
 
 	print("*** Evolving for %d generations with population size = %d ***" % (generations, population))
 
-	generate(generations, population, all_possible_genes, dataset, args.mode, args.mode_th, args.images_dir, args.stopping_th, args.epochs, args.debug)
+	generate(generations, population, all_possible_genes, dataset,
+			 args.mode, args.mode_th, args.images_dir, args.stopping_th, args.epochs, args.debug,
+			 args.congruency, args.equate, args.savedir, args.index)
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='evolve arguments')
@@ -358,7 +307,12 @@ if __name__ == '__main__':
 	parser.add_argument('--epochs', dest='epochs', type=int, required=True, help='The epochs')
 	parser.add_argument('--debug', dest='debug', type=bool, required=False, default=False, help='debug')
 	parser.add_argument('--analysis_path', dest='analysis_path', type=str, required=True, default='', help='analysis directory')
-
+	parser.add_argument('--congruency', dest='congruency', type=int, required=True,
+						help='The stimuli is congruent or incongruent')
+	parser.add_argument('--equate', dest='equate', type=int, required=True,
+						help='1 is for average diameter; 2 is for total surface area; 3 is for convex hull')
+	parser.add_argument('--savedir', dest='savedir', type=str, required=True, help='The save dir')
+	parser.add_argument('--index', dest='index', type=str, required=True, help='The save dir index = generation index')
 	args = parser.parse_args()
 	main(args)
 
