@@ -202,93 +202,6 @@ def get_size_count(mode, path, epochs, current_generation):
 	return (nb_classes, batch_size, input_shape, X_train, X_test, y_train, y_test, epochs)
 
 
-def get_mnist_cnn():
-	"""Retrieve the MNIST dataset and process the data."""
-	# Set defaults.
-	nb_classes = 10  # dataset dependent
-	batch_size = 128
-	epochs = 4
-
-	# Input image dimensions
-	img_rows, img_cols = 28, 28
-
-	# Get the data.
-	# the data, shuffled and split between train and test sets
-	(x_train, y_train), (x_test, y_test) = mnist.load_data()
-
-	if K.image_data_format() == 'channels_first':
-		x_train = x_train.reshape(x_train.shape[0], 1, img_rows, img_cols)
-		x_test = x_test.reshape(x_test.shape[0], 1, img_rows, img_cols)
-		input_shape = (1, img_rows, img_cols)
-	else:
-		x_train = x_train.reshape(x_train.shape[0], img_rows, img_cols, 1)
-		x_test = x_test.reshape(x_test.shape[0], img_rows, img_cols, 1)
-		input_shape = (img_rows, img_cols, 1)
-
-	# x_train = x_train.reshape(60000, 784)
-	# x_test  = x_test.reshape(10000, 784)
-
-	x_train = x_train.astype('float32')
-	x_test = x_test.astype('float32')
-	x_train /= 255
-	x_test /= 255
-
-	# print('x_train shape:', x_train.shape)
-	# print(x_train.shape[0], 'train samples')
-	# print(x_test.shape[0], 'test samples')
-
-	# convert class vectors to binary class matrices
-	y_train = to_categorical(y_train, nb_classes)
-	y_test = to_categorical(y_test, nb_classes)
-
-	# convert class vectors to binary class matrices
-	# y_train = keras.utils.to_categorical(y_train, nb_classes)
-	# y_test = keras.utils.to_categorical(y_test, nb_classes)
-
-	return (nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, epochs)
-
-
-def compile_model_mlp(geneparam, nb_classes, input_shape):
-	"""Compile a sequential model.
-
-	Args:
-		network (dict): the parameters of the network
-
-	Returns:
-		a compiled network.
-
-	"""
-	# Get our network parameters.
-	nb_layers = geneparam['nb_layers']
-	nb_neurons = geneparam['nb_neurons']
-	activation = geneparam['activation']
-	optimizer = geneparam['optimizer']
-
-	logging.info("Architecture:%d,%s,%s,%d" % (nb_neurons, activation, optimizer, nb_layers))
-
-	model = Sequential()
-
-	# Add each layer.
-	for i in range(nb_layers):
-
-		# Need input shape for first layer.
-		if i == 0:
-			model.add(Dense(nb_neurons, activation=activation, input_shape=input_shape))
-		else:
-			model.add(Dense(nb_neurons, activation=activation))
-
-		model.add(Dropout(0.2))  # hard-coded dropout for each layer
-
-	# Output layer.
-	model.add(Dense(nb_classes, activation='softmax'))
-
-	model.compile(loss='categorical_crossentropy',
-				  optimizer=optimizer,
-				  metrics=['accuracy'])
-
-	return model
-
-
 def compile_model_cnn(genome, nb_classes, input_shape):
 	"""Compile a sequential model.
 
@@ -300,6 +213,8 @@ def compile_model_cnn(genome, nb_classes, input_shape):
 
 	"""
 	# Get our network parameters.
+	logging.info("********* Creating a new CNN model **********")
+
 	nb_layers = genome.geneparam['nb_layers']
 	nb_neurons = genome.nb_neurons()
 	activation = genome.geneparam['activation']
@@ -355,22 +270,25 @@ def plot_genome_after_training_on_epochs_is_done(genome, mode, epochs, val_acc, 
 	plt.savefig("models/best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}.jpg".format(date, mode, genome.generation, genome.u_ID, best_accuracy, best_loss))
 
 
-def train_and_score(genome, dataset, mode, path, epochs, debug_mode, mode_th, max_val_accuracy, min_val_loss):
+def train_and_score(genome, dataset, mode, path, epochs, debug_mode, mode_th, max_val_accuracy, min_val_loss, model=None):
 	"""Train the model, return test loss.
 	Args:
 		network (dict): the parameters of the network
 		dataset (str): Dataset to use for training/evaluating
 
 	"""
-	logging.info("Getting Keras datasets")
+	logging.info("Preparing stimuli")
 
 	if dataset == 'size_count':
 		nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, epochs = get_size_count_new(mode, path, epochs, mode_th, max_val_accuracy)
 
-	logging.info("Compling Keras model")
+	if not model:
+		logging.info("*********** Creating a new Keras model for individual %s ***********" % genome.u_ID)
 
-	if dataset == 'size_count':
-		model = compile_model_cnn(genome, nb_classes, input_shape)
+		if dataset == 'size_count':
+			model = compile_model_cnn(genome, nb_classes, input_shape)
+	else:
+		logging.info("*********** Using the existing model for individual %s ***********" % genome.u_ID)
 
 	# prints the model
 	model.summary()
@@ -407,7 +325,7 @@ def train_and_score(genome, dataset, mode, path, epochs, debug_mode, mode_th, ma
 			mode_name = mode
 
 		#delete old files from today because we have better results:
-		old_models_path = "models/best_model_{}_mode_{}*.*".format(date, mode)
+		old_models_path = "models/best_model_{}_mode_{}*.*".format(date, mode, genome.generation, genome.u_ID)
 		for f in glob.glob(old_models_path):
 			os.remove(f)
 
@@ -422,13 +340,13 @@ def train_and_score(genome, dataset, mode, path, epochs, debug_mode, mode_th, ma
 			val_loss = history.history["val_loss"]
 			train_acc = history.history["accuracy"]
 			val_acc = history.history["val_accuracy"]
-			plot_genome_after_training_on_epochs_is_done(genome, mode_name, epochs, val_acc, val_loss, train_acc, train_loss, date, max_val_accuracy, min_val_loss)
+			#plot_genome_after_training_on_epochs_is_done(genome, mode_name, epochs, val_acc, val_loss, train_acc, train_loss, date, max_val_accuracy, min_val_loss)
 			#plot_model(model, to_file=file_name+'.png', show_shapes=True, show_layer_names=True)
 
 
 	K.clear_session()
 	# getting only the last values
-	return best_current_val_accuracy, best_current_val_loss
+	return best_current_val_accuracy, best_current_val_loss, model
 
 
 class LossHistory(Callback):

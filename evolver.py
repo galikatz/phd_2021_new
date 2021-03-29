@@ -21,13 +21,12 @@ from allgenomes import AllGenomes
 class Evolver():
 	"""Class that implements genetic algorithm."""
 
-	def __init__(self, all_possible_genes, retain=0.15, random_select=0.1, mutate_chance=0.25):
+	def __init__(self, all_possible_genes, retain=0.9, random_select=0.1, mutate_chance=0.25):
 		"""Create an optimizer.
 
 		Args:
 			all_possible_genes (dict): Possible genome parameters
-			retain (float): Percentage of population to retain after
-				each generation
+			retain (float): Percentage of population to recombine with each other (the top best)
 			random_select (float): Probability of a rejected genome
 				remaining in the population
 			mutate_chance (float): Probability a genome will be
@@ -202,62 +201,43 @@ class Evolver():
 		# Sort on the scores.
 		graded = [x[1] for x in sorted(graded, key=lambda x: x[0], reverse=True)]
 
-		# Get the number we want to keep unchanged for the next cycle.
+		# Get the number we want to reproduce for next cycle
 		retain_length = int(len(graded)*self.retain)
-		if retain_length == 0 or retain_length == 1:
-			#keep at list 3 best individuals from last generation to the new one.
-			retain_length = 3
-		# In this first step, we keep the 'top' X percent (as defined in self.retain)
-		# We will not change them, except we will update the generation
-		new_generation = graded[:retain_length]
 
-		# For the lower scoring ones, randomly keep some anyway.
-		# This is wasteful, since we _know_ these are bad, so why keep rescoring them without modification?
-		# At least we should mutate them
-		for genome in graded[retain_length:]:
-			if self.random_select > random.random():
-				gtc = copy.deepcopy(genome)
+		# in real life we do not retain individuals from one gen to another,
+		# Thus the retain is 0 and we are doing 100% recommbination and 25% mutation.
+		if retain_length < 2:
+			retain_length = 2 # we need at least 2 parents to recombine for creating the next generation
 
-				while self.master.is_duplicate(gtc):
-					gtc.mutate_one_gene()
+		# the best parents were chosen
+		selection_pool = graded[:retain_length]
+		new_generation = []
 
-				gtc.set_generation( self.ids.get_Gen() )
-				new_generation.append(gtc)
-				self.master.add_genome(gtc)
+		# We keep the same population size every generation
 
-		# Now find out how many spots we have left to fill.
-		ng_length      = len(new_generation)
-
-		desired_length = len(pop) - ng_length
+		desired_length = len(pop)
 
 		children       = []
 
 		# Add children, which are bred from pairs of remaining (i.e. very high or lower scoring) genomes.
 		while len(children) < desired_length:
 			# Get a random mom and dad, but, need to make sure they are distinct
-			if ng_length == 0:
-				print("##### ng_length is negative - there are no ones to keep from this gen to the next ###")
-				break
-			parents  = random.sample(range(ng_length-1), k=2)
+			parents  = random.sample(range(len(selection_pool)), k=2)
 
 			i_male   = parents[0]
 			i_female = parents[1]
 
-			male   = new_generation[i_male]
-			female = new_generation[i_female]
+			male   = selection_pool[i_male]
+			female = selection_pool[i_female]
 
 			# Recombine and mutate
 			babies = self.breed(male, female)
 			# the babies are guaranteed to be novel
 			# add only the number of children that is needed to keep the same population size
-			for i in range (0, desired_length):
-				children.append(babies[i])
+			for i in range (0,2): #only 2 babies at a time
+				if len(children) < desired_length:
+					children.append(babies[i])
 
-			# Add the children one at a time.
-			for baby in babies:
-				# Don't grow larger than desired length.
-				#if len(children) < desired_length:
-				children.append(baby)
 
 		new_generation.extend(children)
 

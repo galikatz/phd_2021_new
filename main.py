@@ -20,26 +20,52 @@ logging.basicConfig(
 )
 
 
-def train_genomes(genomes, dataset, mode, path, epochs, debug_mode, mode_th):
+def train_genomes(genomes, individuals_models, dataset, mode, path, epochs, debug_mode, mode_th):
 	logging.info("*** Going to train %s individuals ***" % len(genomes))
-	pbar = tqdm(total=len(genomes))
+	pop_size = len(genomes)
+	#progress bar
+	pbar = tqdm(total=pop_size)
 	individual_index = 1
 	best_individual_acc = 0.0
 	best_individual_loss = 1.0
+	sum_individual_acc = 0
+	#loop over all individuals
 	for genome in genomes:
 		logging.info("*** Training individual #%s ***" % individual_index)
-		curr_individual_acc, curr_individual_loss = genome.train(dataset, mode, path, epochs, debug_mode, mode_th, best_individual_acc, best_individual_loss)
+		if genome not in individuals_models:
+			logging.info("*** Individual #%s is not in individuals_models, probably after evolution - new offspring ***" % individual_index)
+			curr_individual_acc, curr_individual_loss, curr_individual_model = genome.train(dataset, mode, path, epochs,
+																							debug_mode, mode_th,
+																							best_individual_acc,
+																							best_individual_loss,
+																							None)
+
+		else:
+			logging.info("*** Individual #%s already in individuals_models ***" % individual_index)
+			curr_individual_acc, curr_individual_loss, curr_individual_model = genome.train(dataset, mode, path, epochs,
+																							debug_mode, mode_th,
+																							best_individual_acc,
+																							best_individual_loss,
+																							individuals_models[genome])
+		sum_individual_acc += curr_individual_acc
+
+		individuals_models.update({genome: curr_individual_model})
+
+		# finding the best individual in this generation
 		if best_individual_acc < curr_individual_acc:
 			best_individual_acc = curr_individual_acc
 			best_individual_loss = curr_individual_loss
 		elif best_individual_acc == curr_individual_acc and best_individual_loss > curr_individual_loss:
 			best_individual_acc = curr_individual_acc
 			best_individual_loss = curr_individual_loss
+
 		pbar.update(1)
 		individual_index += 1
-
 	pbar.close()
-	return best_individual_acc, best_individual_loss
+
+	# calculate the avg accuracy in this generation
+	avg_accuracy = sum_individual_acc / pop_size
+	return best_individual_acc, best_individual_loss, individuals_models, avg_accuracy
 
 def get_best_genome(genomes):
 	"""
@@ -59,8 +85,8 @@ def get_best_genome(genomes):
 
 
 def generate(generations, generation_index, population, all_possible_genes, dataset, mode, mode_th, images_dir,
-			 stopping_th, epochs, debug_mode, congruency, equate, savedir, index, already_switched,
-			 genomes=None, evolver=None):
+			 stopping_th, epochs, debug_mode, congruency, equate, savedir, already_switched,
+			 genomes=None, evolver=None, individual_models=None):
 	"""Generate a network with the genetic algorithm.
 
 	Args:
@@ -75,6 +101,10 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	if not genomes:
 		evolver = Evolver(all_possible_genes)
 		genomes = evolver.create_population(population)
+		if not individual_models:
+			individual_models = {}
+		for genome in genomes:
+			individual_models.update( {genome : None} )
 
 	# Evolve the generation.
 	if mode == 'both':
@@ -89,7 +119,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 			#delete old images
 			if os.path.exists(images_dir + "_" + str(i-1)):
 				shutil.rmtree(images_dir + "_" + str(i-1))
-			#now generate the next dir
+			# now generate the next dir
 			generate_new_images(congruency, equate, savedir, i)
 
 		logging.info("********* Now in mode %s generation %d of %d reading images from dir: %s *********" % (actual_mode, i, generations, images_dir_per_gen))
@@ -97,33 +127,33 @@ def generate(generations, generation_index, population, all_possible_genes, data
 		print_genomes(genomes)
 
 		# Train and Get the best accuracy for this generation from all individuals.
-		best_accuracy, best_loss = train_genomes(genomes, dataset, actual_mode, images_dir_per_gen, epochs, debug_mode, mode_th)
+		# if there is no model existing for this genome it will create one.
+		best_accuracy, best_loss, individuals_models, avg_accuracy = train_genomes(genomes, individual_models, dataset, actual_mode, images_dir_per_gen, epochs, debug_mode, mode_th)
 
-		if mode != "both" and best_accuracy >= stopping_th:
-			logging.info("Done training! average_accuracy is %s" % str(best_accuracy))
+		if mode != "both" and avg_accuracy >= stopping_th:
+			logging.info("Done training! average_accuracy is %s" % str(avg_accuracy))
 			break
 
 		if mode == "both": # this is for the first time before the switch (no recursion)
-			if best_accuracy >= mode_th:
-				if best_accuracy >= stopping_th:
+			if avg_accuracy >= mode_th:
+				if avg_accuracy >= stopping_th:
 					if already_switched:
-						logging.info("Done training! average_accuracy is %s" % str(best_accuracy))
+						logging.info("Done training! average_accuracy is %s" % str(avg_accuracy))
 						break
 
-				logging.info('********** SWITCHING TO COUNTING, ACCURACY: %s **********' % str(best_accuracy))
-				actual_mode = 'count'
-				# we have to reset the accuracy before training a new task.
-				for genome in genomes:
-					genome.accuracy = 0.0
-					genome.val_loss = 1.0
+				if not already_switched:
+					logging.info('********** SWITCHING TO COUNTING, STILL IN GENERATION %s, ACCURACY: %s **********' % (str(i), str(best_accuracy)))
+					actual_mode = 'count'
+					# we have to reset the accuracy before training a new task.
+					for genome in genomes:
+						genome.accuracy = 0.0
+						genome.val_loss = 1.0
+					already_switched = True
 
-				# notice - recursion
-				generate(generations, i , population, all_possible_genes, dataset, actual_mode, mode_th,
-						 images_dir, stopping_th, epochs, debug_mode,
-						 congruency, equate, savedir, index, True,
-						 genomes, evolver)
-
+				# now train again, this time for counting:
+				best_accuracy, best_loss, individuals_models, avg_accuracy = train_genomes(genomes, individual_models, dataset, actual_mode, images_dir_per_gen, epochs, debug_mode, mode_th)
 		# Print out the average accuracy each generation.
+		logging.info("Generation avg accuracy: %.2f%%" % (avg_accuracy * 100))
 		logging.info("Generation best accuracy: %.2f%% and loss: %.2f%%" % (best_accuracy * 100, best_loss))
 		logging.info('-'*80) #-----------
 
@@ -132,7 +162,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 			logging.info("Evolving! - mutation and recombination")
 			genomes = evolver.evolve(genomes)
 
-	logging.info("End of generations loop - evolution is over, best accuracy: %.2f%% and loss: %.2f%%" % (best_accuracy * 100, best_loss))
+	logging.info("************ End of generations loop - evolution is over, avg accuracy: %.2f%%, best accuracy: %.2f%% and loss: %.2f%% **************" % (avg_accuracy * 100, best_accuracy * 100, best_loss))
 	# Sort our final population according to performance.
 	genomes = sorted(genomes, key=lambda x: x.accuracy, reverse=True)
 
@@ -265,7 +295,7 @@ def main(args):
 	if dataset == 'size_count':
 		generations = args.gens  # Number of times to evolve the population.
 		all_possible_genes = {
-			'nb_neurons': [16, 32, 64, 128, 256, 512],
+			'nb_neurons': [16, 32, 64, 128, 256],
 			'nb_layers': [1, 2, 3, 4, 5],
 			'activation': ['relu', 'elu', 'tanh', 'sigmoid', 'hard_sigmoid', 'softplus', 'linear'],
 			'optimizer': ['rmsprop', 'adam', 'sgd', 'adagrad', 'adadelta', 'adamax', 'nadam']
@@ -290,8 +320,8 @@ def main(args):
 	print("*** Evolving for %d generations with population size = %d ***" % (generations, population))
 
 	generate(generations, 1, population, all_possible_genes, dataset,
-			 args.mode, args.mode_th, args.images_dir, args.stopping_th, args.epochs, args.debug,
-			 args.congruency, args.equate, args.savedir, args.index, False)
+			 args.mode, args.mode_th, args.images_dir, args.stopping_th, args.epochs, args.debug, args.congruency,
+			 args.equate, args.savedir, False)
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='evolve arguments')
@@ -310,7 +340,6 @@ if __name__ == '__main__':
 	parser.add_argument('--equate', dest='equate', type=int, required=True,
 						help='1 is for average diameter; 2 is for total surface area; 3 is for convex hull')
 	parser.add_argument('--savedir', dest='savedir', type=str, required=True, help='The save dir')
-	parser.add_argument('--index', dest='index', type=str, required=True, help='The save dir index = generation index')
 	args = parser.parse_args()
 	main(args)
 
