@@ -335,10 +335,8 @@ if __name__ == '__main__':
 	parser.add_argument('--epochs', dest='epochs', type=int, required=True, help='The epochs')
 	parser.add_argument('--debug', dest='debug', type=bool, required=False, default=False, help='debug')
 	parser.add_argument('--analysis_path', dest='analysis_path', type=str, required=True, default='', help='analysis directory')
-	parser.add_argument('--congruency', dest='congruency', type=int, required=True,
-						help='The stimuli is congruent or incongruent')
-	parser.add_argument('--equate', dest='equate', type=int, required=True,
-						help='1 is for average diameter; 2 is for total surface area; 3 is for convex hull')
+	parser.add_argument('--congruency', dest='congruency', type=int, required=True, help='0-incongruent, 1-congruent')
+	parser.add_argument('--equate', dest='equate', type=int, required=True,	help='1 is for average diameter; 2 is for total surface area; 3 is for convex hull')
 	parser.add_argument('--savedir', dest='savedir', type=str, required=True, help='The save dir')
 	args = parser.parse_args()
 	main(args)
