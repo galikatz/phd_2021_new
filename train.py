@@ -29,7 +29,7 @@ import logging
 import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
-from classify import get_size_count_new
+from classify import classify_labels_according_to_mode
 from datetime import datetime
 from keras.utils.vis_utils import plot_model
 matplotlib.use('TkAgg')
@@ -154,54 +154,6 @@ def show_values_on_bars(axs, h_v="v", space=0.4):
 		_show_on_single_plot(axs)
 
 
-def get_size_count(mode, path, epochs, current_generation):
-	# Set defaults.
-	nb_classes = None
-	if mode == 'size':
-		nb_classes = 2
-	else:
-		nb_classes = 11
-	batch_size = 128
-
-	# Input image dimensions
-	img_rows, img_cols = 100, 100
-
-	# Get the data.
-	# the data, shuffled and split between train and test sets
-	(X_train, y_train), (X_test, y_test) = load_size_count_data(mode, path, current_generation)
-
-	# if K.image_data_format() == 'channels_first':
-	#     x_train = x_train.reshape(x_train.shape[0], 1, img_rows, img_cols)
-	#     x_test = x_test.reshape(x_test.shape[0], 1, img_rows, img_cols)
-	#     input_shape = (1, img_rows, img_cols)
-	# else:
-	#     x_train = x_train.reshape(x_train.shape[0], img_rows, img_cols, 1)
-	#     x_test = x_test.reshape(x_test.shape[0], img_rows, img_cols, 1)
-	#     input_shape = (img_rows, img_cols, 1)
-	input_shape = (img_rows, img_cols, 3)  # RGB
-	# x_train = x_train.reshape(60000, 784)
-	# x_test  = x_test.reshape(10000, 784)
-
-	# x_train = X_train.astype('float32')
-	# x_test = X_test.astype('float32')
-	# x_train /= 255
-	# x_test /= 255
-
-	# print('x_train shape:', x_train.shape)
-	# print(x_train.shape[0], 'train samples')
-	# print(x_test.shape[0], 'test samples')
-
-	# convert class vectors to binary class matrices
-	y_train = to_categorical(y_train, nb_classes)
-	y_test = to_categorical(y_test, nb_classes)
-
-	# convert class vectors to binary class matrices
-	# y_train = keras.utils.to_categorical(y_train, nb_classes)
-	# y_test = keras.utils.to_categorical(y_test, nb_classes)
-
-	return (nb_classes, batch_size, input_shape, X_train, X_test, y_train, y_test, epochs)
-
-
 def compile_model_cnn(genome, nb_classes, input_shape):
 	"""Compile a sequential model.
 
@@ -270,7 +222,7 @@ def plot_genome_after_training_on_epochs_is_done(genome, mode, epochs, val_acc, 
 	plt.savefig("models/best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}.jpg".format(date, mode, genome.generation, genome.u_ID, best_accuracy, best_loss))
 
 
-def train_and_score(genome, dataset, mode, path, epochs, debug_mode, mode_th, max_val_accuracy, min_val_loss, model=None):
+def train_and_score(genome, dataset, mode, path, epochs, debug_mode, max_val_accuracy, model=None):
 	"""Train the model, return test loss.
 	Args:
 		network (dict): the parameters of the network
@@ -280,7 +232,7 @@ def train_and_score(genome, dataset, mode, path, epochs, debug_mode, mode_th, ma
 	logging.info("Preparing stimuli")
 
 	if dataset == 'size_count':
-		nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, epochs = get_size_count_new(mode, path, epochs, mode_th, max_val_accuracy)
+		nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, epochs = classify_labels_according_to_mode(mode, path, epochs)
 
 	if not model:
 		logging.info("*********** Creating a new Keras model for individual %s ***********" % genome.u_ID)
@@ -302,7 +254,20 @@ def train_and_score(genome, dataset, mode, path, epochs, debug_mode, mode_th, ma
 						validation_data=(x_test, y_test),
 						callbacks=[history,early_stopper]) # using early stopping so no real limit - don't want to waste time on horrible architectures
 
-	score = model.evaluate(x_test, y_test, verbose=0)
+	score = model.evaluate(x=x_test, y=y_test, verbose=0)
+	#savig the results of each prediction
+	y_test_prediction = model.predict(x=x_test, batch_size=batch_size, verbose=0)
+
+	#fixing the prediction result to be 0 and 1 and not float thresholds.
+	y_test_corrected = []
+	for i in range(len(y_test_prediction)):
+		if y_test_prediction[i][0] > 0.5:
+			left_stimulus_result = 1
+			right_stimulus_result = 0
+		else:
+			left_stimulus_result = 0
+			right_stimulus_result = 1
+		y_test_corrected.append(np.array([left_stimulus_result,right_stimulus_result]))
 
 	best_current_val_loss = round(score[0],3)
 	best_current_val_accuracy = round(score[1],3)
@@ -346,7 +311,7 @@ def train_and_score(genome, dataset, mode, path, epochs, debug_mode, mode_th, ma
 
 	K.clear_session()
 	# getting only the last values
-	return best_current_val_accuracy, best_current_val_loss, model
+	return best_current_val_accuracy, best_current_val_loss, y_test_corrected, model
 
 
 class LossHistory(Callback):

@@ -4,6 +4,7 @@ import numpy as np
 import os # used for navigating to image path
 import glob
 import logging
+import random
 import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
 from keras.utils import np_utils
@@ -21,13 +22,13 @@ def main(args):
 	create_model(x_train, y_train, x_test, y_test)
 
 
-def get_size_count_new(mode, path, epochs, mode_th, validation_acc):
+def classify_labels_according_to_mode(mode, path, epochs):
 	nb_classes = 2
 	batch_size = 60
 
 	# Input image dimensions
 	input_shape = (IMG_SIZE, IMG_SIZE, 3)#RGB
-	(x_train, y_train), (x_test, y_test) = creating_train_test_data(path, "katzin", mode, mode_th, validation_acc)
+	(x_train, y_train), (x_test, y_test) = creating_train_test_data(path, "katzin", mode)
 	y_train = to_categorical(y_train, nb_classes)
 	y_test = to_categorical(y_test, nb_classes)
 	print('y_train size: {} y_test size: {}'.format(len(y_train), len(y_test)))
@@ -134,6 +135,12 @@ def extract_label(file_name, stimuli_type, task):
 					classification_label = '1'
 				else:
 					classification_label = '0'
+		if task == 'random':
+			random_result = random.random()
+			if random_result > 0.5:
+				classification_label = '0' # left stimulus is bigger
+			else:
+				classification_label = '1'  # right stimulus is bigger
 
 		return {'congruency': congruency, 'ratio': ratio, 'left_num': labels[1], 'right_num': labels[2], 'classification_label': classification_label}
 
@@ -141,7 +148,7 @@ def extract_label(file_name, stimuli_type, task):
 #########################################
 # Labeling and creating / switching tasks
 #########################################
-def creating_train_test_data(dir, stimuli_type, mode, mode_th, validation_acc):
+def creating_train_test_data(dir, stimuli_type, mode):
 	logging.info("*** Classifying and labeling accroding to mode %s ***" % mode)
 	data = []
 	files = glob.glob(dir + os.sep + '*.jpg')
@@ -158,7 +165,7 @@ def creating_train_test_data(dir, stimuli_type, mode, mode_th, validation_acc):
 		img = rgb_image.copy()
 		data.append([np.array(img), label['classification_label']])
 
-	# shuffeling the collection
+	# shuffle the collection
 	data = shuffle(data)
 	final_data = []
 	final_labels = []

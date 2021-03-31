@@ -20,7 +20,7 @@ def generate_new_images(congruency, equate, savedir, index):
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='evolve arguments')
 	parser.add_argument('--congruency', dest='congruency', type=int, required=True,
-						help='The stimuli is congruent or incongruent')
+						help='The stimuli is congruent or incongruent, 0-incong, 1-cong')
 	parser.add_argument('--equate', dest='equate', type=int, required=True,
 						help='1 is for average diameter; 2 is for total surface area; 3 is for convex hull')
 	parser.add_argument('--savedir', dest='savedir', type=str, required=True, help='The save dir')

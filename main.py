@@ -34,7 +34,7 @@ def train_genomes(genomes, individuals_models, dataset, mode, path, epochs, debu
 		logging.info("*** Training individual #%s ***" % individual_index)
 		if genome not in individuals_models:
 			logging.info("*** Individual #%s is not in individuals_models, probably after evolution - new offspring ***" % individual_index)
-			curr_individual_acc, curr_individual_loss, curr_individual_model = genome.train(dataset, mode, path, epochs,
+			curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model = genome.train(dataset, mode, path, epochs,
 																							debug_mode, mode_th,
 																							best_individual_acc,
 																							best_individual_loss,
@@ -42,10 +42,9 @@ def train_genomes(genomes, individuals_models, dataset, mode, path, epochs, debu
 
 		else:
 			logging.info("*** Individual #%s already in individuals_models ***" % individual_index)
-			curr_individual_acc, curr_individual_loss, curr_individual_model = genome.train(dataset, mode, path, epochs,
-																							debug_mode, mode_th,
+			curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model = genome.train(dataset, mode, path, epochs,
+																							debug_mode,
 																							best_individual_acc,
-																							best_individual_loss,
 																							individuals_models[genome])
 		sum_individual_acc += curr_individual_acc
 
@@ -107,8 +106,10 @@ def generate(generations, generation_index, population, all_possible_genes, data
 			individual_models.update( {genome : None} )
 
 	# Evolve the generation.
-	if mode == 'both':
+	if mode == 'size-count':
 		actual_mode = 'size' #we start with size, than switch to counting
+	elif mode == 'random-count':
+		actual_mode = 'random'
 	else:
 		actual_mode = mode
 	for i in range(generation_index, generations + 1):
@@ -120,9 +121,13 @@ def generate(generations, generation_index, population, all_possible_genes, data
 			if os.path.exists(images_dir + "_" + str(i-1)):
 				shutil.rmtree(images_dir + "_" + str(i-1))
 			# now generate the next dir
-			generate_new_images(congruency, equate, savedir, i)
+			if congruency == 2: #both cong and incong are required
+				generate_new_images(0, equate, savedir, i)
+				generate_new_images(1, equate, savedir, i)
+			else:
+				generate_new_images(congruency, equate, savedir, i)
 
-		logging.info("********* Now in mode %s generation %d of %d reading images from dir: %s *********" % (actual_mode, i, generations, images_dir_per_gen))
+		logging.info("********* Now in mode %s generation %d out of %d reading images from dir: %s *********" % (actual_mode, i, generations, images_dir_per_gen))
 
 		print_genomes(genomes)
 
@@ -130,11 +135,11 @@ def generate(generations, generation_index, population, all_possible_genes, data
 		# if there is no model existing for this genome it will create one.
 		best_accuracy, best_loss, individuals_models, avg_accuracy = train_genomes(genomes, individual_models, dataset, actual_mode, images_dir_per_gen, epochs, debug_mode, mode_th)
 
-		if mode != "both" and avg_accuracy >= stopping_th:
+		if (mode != "size-count" and mode != "random-count") and avg_accuracy >= stopping_th:
 			logging.info("Done training! average_accuracy is %s" % str(avg_accuracy))
 			break
 
-		if mode == "both": # this is for the first time before the switch (no recursion)
+		if mode == "size-count" or mode == "random-count": # this is for the first time before the switch
 			if avg_accuracy >= mode_th:
 				if avg_accuracy >= stopping_th:
 					if already_switched:
@@ -144,6 +149,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 				if not already_switched:
 					logging.info('********** SWITCHING TO COUNTING, STILL IN GENERATION %s, ACCURACY: %s **********' % (str(i), str(best_accuracy)))
 					actual_mode = 'count'
+
 					# we have to reset the accuracy before training a new task.
 					for genome in genomes:
 						genome.accuracy = 0.0
@@ -335,7 +341,7 @@ if __name__ == '__main__':
 	parser.add_argument('--epochs', dest='epochs', type=int, required=True, help='The epochs')
 	parser.add_argument('--debug', dest='debug', type=bool, required=False, default=False, help='debug')
 	parser.add_argument('--analysis_path', dest='analysis_path', type=str, required=True, default='', help='analysis directory')
-	parser.add_argument('--congruency', dest='congruency', type=int, required=True, help='0-incongruent, 1-congruent')
+	parser.add_argument('--congruency', dest='congruency', type=int, required=True, help='0-incongruent, 1-congruent, 2-both')
 	parser.add_argument('--equate', dest='equate', type=int, required=True,	help='1 is for average diameter; 2 is for total surface area; 3 is for convex hull')
 	parser.add_argument('--savedir', dest='savedir', type=str, required=True, help='The save dir')
 	args = parser.parse_args()

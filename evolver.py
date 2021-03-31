@@ -157,9 +157,11 @@ class Evolver():
 
 		# Randomly mutate one gene
 		if self.mutate_chance > random.random():
+			logging.info("##### Mutating one gene of genome: %s ####" % genome1.u_ID)
 			genome1.mutate_one_gene()
 
 		if self.mutate_chance > random.random():
+			logging.info("##### Mutating one gene of genome: %s ####" % genome2.u_ID)
 			genome2.mutate_one_gene()
 
 		#do we have a unique child or are we just retraining one we already have anyway?
