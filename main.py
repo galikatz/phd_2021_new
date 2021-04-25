@@ -10,7 +10,12 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from create_images_from_matlab import generate_new_images
 import shutil
+from sklearn.utils import shuffle
+from train import refresh_classification_cache
+from evolution_utils import create_evolution_analysis_per_task_per_equate_csv, concat_dataframes_into_raw_data_csv_cross_generations, DataAllSubjects
+import glob
 
+MIN_DIFF = 100
 # Setup logging.
 logging.basicConfig(
 	format='%(asctime)s - %(levelname)s - %(message)s',
@@ -20,7 +25,7 @@ logging.basicConfig(
 )
 
 
-def train_genomes(genomes, individuals_models, dataset, mode, path, epochs, debug_mode, mode_th):
+def train_genomes(genomes, individuals_models, dataset, mode, path, batch_size, epochs, debug_mode, mode_th):
 	logging.info("*** Going to train %s individuals ***" % len(genomes))
 	pop_size = len(genomes)
 	#progress bar
@@ -29,26 +34,35 @@ def train_genomes(genomes, individuals_models, dataset, mode, path, epochs, debu
 	best_individual_acc = 0.0
 	best_individual_loss = 1.0
 	sum_individual_acc = 0
-	#loop over all individuals
+
+	################## loop over all individuals ##################
+	#refresh classify cache
+	logging.info("####################### Refreshing classification cache, once in a generation #######################");
+	trainer_classification_cache = refresh_classification_cache()
+	data_per_subject_list = []
 	for genome in genomes:
 		logging.info("*** Training individual #%s ***" % individual_index)
 		if genome not in individuals_models:
 			logging.info("*** Individual #%s is not in individuals_models, probably after evolution - new offspring ***" % individual_index)
-			curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model = genome.train(dataset, mode, path, epochs,
-																							debug_mode, mode_th,
+			curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(dataset, mode, path, batch_size, epochs,
+																							debug_mode,
 																							best_individual_acc,
-																							best_individual_loss,
+																							trainer_classification_cache,
 																							None)
 
 		else:
 			logging.info("*** Individual #%s already in individuals_models ***" % individual_index)
-			curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model = genome.train(dataset, mode, path, epochs,
+			curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(dataset, mode, path, batch_size, epochs,
 																							debug_mode,
 																							best_individual_acc,
+																							trainer_classification_cache,
 																							individuals_models[genome])
 		sum_individual_acc += curr_individual_acc
 
 		individuals_models.update({genome: curr_individual_model})
+
+		# accumulate data per subject
+		data_per_subject_list.append(data_per_subject)
 
 		# finding the best individual in this generation
 		if best_individual_acc < curr_individual_acc:
@@ -64,7 +78,8 @@ def train_genomes(genomes, individuals_models, dataset, mode, path, epochs, debu
 
 	# calculate the avg accuracy in this generation
 	avg_accuracy = sum_individual_acc / pop_size
-	return best_individual_acc, best_individual_loss, individuals_models, avg_accuracy
+	data_all_subjects = DataAllSubjects(data_per_subject_list)
+	return best_individual_acc, best_individual_loss, individuals_models, avg_accuracy, data_all_subjects, training_set_size, validation_set_size, validation_set_size_congruent
 
 def get_best_genome(genomes):
 	"""
@@ -84,8 +99,8 @@ def get_best_genome(genomes):
 
 
 def generate(generations, generation_index, population, all_possible_genes, dataset, mode, mode_th, images_dir,
-			 stopping_th, epochs, debug_mode, congruency, equate, savedir, already_switched,
-			 genomes=None, evolver=None, individual_models=None):
+			 stopping_th, batch_size, epochs, debug_mode, congruency, equate, savedir, already_switched,
+			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=False):
 	"""Generate a network with the genetic algorithm.
 
 	Args:
@@ -95,7 +110,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 		dataset (str): Dataset to use for training/evaluating
 
 	"""
-	logging.info("*** Configuration: mode={}, mode_th={}, generations={}, population={}, epochs={}, stopping_th={})***".format(mode, mode_th, generations, population, epochs, stopping_th))
+	logging.info("*** Configuration: mode={}, mode_th={}, generations={}, population={}, batch_size={}.epochs={}, stopping_th={})***".format(mode, mode_th, generations, population, batch_size, epochs, stopping_th))
 
 	if not genomes:
 		evolver = Evolver(all_possible_genes)
@@ -112,28 +127,23 @@ def generate(generations, generation_index, population, all_possible_genes, data
 		actual_mode = 'random'
 	else:
 		actual_mode = mode
+
+	dataframe_list_of_results = []
+
+	################ loop over generations ######################
+
 	for i in range(generation_index, generations + 1):
 		### Every new generation we create new stimuli ###
 		images_dir_per_gen = images_dir + "_" + str(i)
 
-		if not os.path.exists(images_dir_per_gen):
-			#delete old images
-			if os.path.exists(images_dir + "_" + str(i-1)):
-				shutil.rmtree(images_dir + "_" + str(i-1))
-			# now generate the next dir
-			if congruency == 2: #both cong and incong are required
-				generate_new_images(0, equate, savedir, i)
-				generate_new_images(1, equate, savedir, i)
-			else:
-				generate_new_images(congruency, equate, savedir, i)
-
-		logging.info("********* Now in mode %s generation %d out of %d reading images from dir: %s *********" % (actual_mode, i, generations, images_dir_per_gen))
+		creating_images_for_current_generation(images_dir_per_gen, images_dir, i, should_delete_stimuli, congruency, equate, savedir, actual_mode, generations)
 
 		print_genomes(genomes)
 
 		# Train and Get the best accuracy for this generation from all individuals.
 		# if there is no model existing for this genome it will create one.
-		best_accuracy, best_loss, individuals_models, avg_accuracy = train_genomes(genomes, individual_models, dataset, actual_mode, images_dir_per_gen, epochs, debug_mode, mode_th)
+		best_accuracy, best_loss, individuals_models, avg_accuracy,	data_from_all_subjects,  training_set_size, validation_set_size, validation_set_size_congruent = train_genomes(genomes, individual_models, dataset, actual_mode, images_dir_per_gen, batch_size, epochs, debug_mode, mode_th)
+
 
 		if (mode != "size-count" and mode != "random-count") and avg_accuracy >= stopping_th:
 			logging.info("Done training! average_accuracy is %s" % str(avg_accuracy))
@@ -157,7 +167,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 					already_switched = True
 
 				# now train again, this time for counting:
-				best_accuracy, best_loss, individuals_models, avg_accuracy = train_genomes(genomes, individual_models, dataset, actual_mode, images_dir_per_gen, epochs, debug_mode, mode_th)
+				best_accuracy, best_loss, individuals_models, avg_accuracy, training_set_size, validation_set_size, validation_set_size_congruent = train_genomes(genomes, individual_models, dataset, actual_mode, images_dir_per_gen, batch_size, epochs, debug_mode, mode_th)
 		# Print out the average accuracy each generation.
 		logging.info("Generation avg accuracy: %.2f%%" % (avg_accuracy * 100))
 		logging.info("Generation best accuracy: %.2f%% and loss: %.2f%%" % (best_accuracy * 100, best_loss))
@@ -168,6 +178,18 @@ def generate(generations, generation_index, population, all_possible_genes, data
 			logging.info("Evolving! - mutation and recombination")
 			genomes = evolver.evolve(genomes)
 
+		# create data for analysis per generation
+		df_per_gen = create_evolution_analysis_per_task_per_equate_csv(i,
+																	   population,
+																	   data_from_all_subjects,
+																	   mode,
+																	   equate,
+																	   training_set_size,
+																	   validation_set_size,
+																	   validation_set_size_congruent)
+		dataframe_list_of_results.append(df_per_gen)
+
+
 	logging.info("************ End of generations loop - evolution is over, avg accuracy: %.2f%%, best accuracy: %.2f%% and loss: %.2f%% **************" % (avg_accuracy * 100, best_accuracy * 100, best_loss))
 	# Sort our final population according to performance.
 	genomes = sorted(genomes, key=lambda x: x.accuracy, reverse=True)
@@ -175,6 +197,63 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	# Print out the top 5 networks/genomes.
 	logging.info("Top 5 networks are:")
 	print_genomes(genomes[:5])
+
+	# creating result csvs:
+	logging.info("Creating results csvs")
+	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, "evolution_analysis_raw_data.csv")
+
+def creating_images_for_current_generation(images_dir_per_gen, images_dir, i, should_delete_stimuli, congruency, equate, savedir, actual_mode, generations):
+	if not os.path.exists(images_dir_per_gen):
+		# delete old images
+		if should_delete_stimuli and os.path.exists(images_dir + "_" + str(i - 1)):
+			shutil.rmtree(images_dir + "_" + str(i - 1))
+		# now generate the next dir
+		if congruency == 2:  # both cong and incong are required
+			num_of_incong = generate_new_images(0, equate, savedir, i, "incong")
+			num_of_cong = generate_new_images(1, equate, savedir, i, "cong")
+
+			# balance incong and cong sizes:
+			while num_of_cong - num_of_incong > MIN_DIFF:
+				# create more incongruent
+				num_of_incong = generate_new_images(0, equate, savedir, i, "incong")
+
+			while num_of_incong - num_of_cong > MIN_DIFF:
+				# create more congruent
+				num_of_cong = generate_new_images(1, equate, savedir, i, "cong")
+
+			if num_of_cong > num_of_incong:
+				diff = num_of_cong - num_of_incong
+				delete_extra_files("cong", diff, images_dir_per_gen)
+
+			elif num_of_cong < num_of_incong:
+				diff = num_of_incong - num_of_cong
+				delete_extra_files("incong", diff, images_dir_per_gen)
+
+			# else they are equal - no need to create / delete anything
+
+			num_of_cong = glob.glob(images_dir_per_gen + os.sep + 'cong*.jpg')
+			num_of_incong = glob.glob(images_dir_per_gen + os.sep + 'incong*.jpg')
+			num_of_files = num_of_cong + num_of_incong
+		else:
+			num_of_files = generate_new_images(congruency, equate, savedir, i)
+
+		logging.info("Number of files created is: %s, incong: %s, cong: %s" % (
+		len(num_of_files), len(num_of_incong), len(num_of_cong)))
+	logging.info("********* Now in mode %s generation %d out of %d reading images from dir: %s *********" % (actual_mode, i, generations, images_dir_per_gen))
+
+
+def delete_extra_files(prefix, num_of_files_to_delete, images_dir):
+	images_files = os.listdir(images_dir)
+	images_files_shuffled = shuffle(images_files)
+	files_to_delete = []
+	for file_name in images_files_shuffled:
+		if file_name.startswith(prefix):
+			files_to_delete.append(file_name)
+		if len(files_to_delete) == num_of_files_to_delete:
+			break
+	for fname in files_to_delete:
+		os.remove(os.path.join(images_dir, fname))
+	logging.info("Done deleting %s files, for balancing stimuli" % len(files_to_delete))
 
 
 def print_genomes(genomes):
@@ -325,9 +404,16 @@ def main(args):
 
 	print("*** Evolving for %d generations with population size = %d ***" % (generations, population))
 
-	generate(generations, 1, population, all_possible_genes, dataset,
-			 args.mode, args.mode_th, args.images_dir, args.stopping_th, args.epochs, args.debug, args.congruency,
-			 args.equate, args.savedir, False)
+	generate(generations=generations, generation_index=1, population=population, all_possible_genes=all_possible_genes, dataset=dataset,
+			 mode=args.mode, mode_th=args.mode_th, images_dir=args.images_dir, stopping_th=args.stopping_th, batch_size=args.batch_size, epochs=args.epochs, debug_mode=args.debug, congruency=args.congruency,
+			 equate=args.equate, savedir=args.savedir, already_switched=False, genomes = None, evolver = None, individual_models = None, should_delete_stimuli = args.should_delete_stimuli)
+
+def str2bool(value):
+	"""Convert string to bool (in argparse context)."""
+	if value.lower() not in ['true', 'false', '1', '0']:
+		raise ValueError('Need bool; got %r' % value)
+	return {'true': True, 'false': False, '1': True, '0': False}[value.lower()]
+
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='evolve arguments')
@@ -339,11 +425,13 @@ if __name__ == '__main__':
 	parser.add_argument('--images_dir', dest='images_dir', type=str, required=True, help='The images dir')
 	parser.add_argument('--stopping_th', dest='stopping_th', type=float, required=True, help='The stopping threshold of accuracy')
 	parser.add_argument('--epochs', dest='epochs', type=int, required=True, help='The epochs')
-	parser.add_argument('--debug', dest='debug', type=bool, required=False, default=False, help='debug')
+	parser.add_argument('--debug', dest='debug', type=str2bool, required=False, default=False, help='debug')
 	parser.add_argument('--analysis_path', dest='analysis_path', type=str, required=True, default='', help='analysis directory')
 	parser.add_argument('--congruency', dest='congruency', type=int, required=True, help='0-incongruent, 1-congruent, 2-both')
 	parser.add_argument('--equate', dest='equate', type=int, required=True,	help='1 is for average diameter; 2 is for total surface area; 3 is for convex hull')
 	parser.add_argument('--savedir', dest='savedir', type=str, required=True, help='The save dir')
+	parser.add_argument('--should_delete_stimuli', dest='should_delete_stimuli', type=str2bool, required=False, default=False, help='should delete old generations stimuli images dir')
+	parser.add_argument('--batch_size', dest='batch_size', type=int, required=True, help='The batch_size')
 	args = parser.parse_args()
 	main(args)
 

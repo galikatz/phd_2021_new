@@ -12,12 +12,11 @@ import random
 import glob
 import cv2
 from imutils import paths
-from keras.datasets import mnist, cifar10
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
-from keras.utils.np_utils import to_categorical
 from keras.callbacks import EarlyStopping, Callback
 from keras.layers import Conv2D, MaxPooling2D
+from keras import losses
 from keras import backend as K
 import numpy as np
 import pandas as pd
@@ -32,56 +31,48 @@ import seaborn as sns
 from classify import classify_labels_according_to_mode
 from datetime import datetime
 from keras.utils.vis_utils import plot_model
+from evolution_utils import DataPerSubject
 matplotlib.use('TkAgg')
 
 
 # Helper: Early stopping.
 early_stopper = EarlyStopping(monitor='val_loss', min_delta=0.1, patience=2, verbose=0, mode='auto')
 
+class TrainClassificationCache:
+	def __init__(self):
+		self.nb_classes = None
+		self.batch_size = None
+		self.input_shape = None
+		self.x_train = None
+		self.x_test = None
+		self.x_test = None
+		self.y_train = None
+		self.y_test = None
+		self.x_cong_test = None
+		self.y_cong_test = None
+		self.x_incong_test = None
+		self.y_incong_test = None
+		self.cache_is_empty = True
 
-def load_size_count_data(mode, path, current_generation):
-	"""Loads the Size Count dataset.
 
-	# Arguments
-	  the path to the dataset.
+	def update_classification_cache(self, nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, x_cong_test, y_cong_test, x_incong_test, y_incong_test):
+		self.nb_classes = nb_classes
+		self.batch_size = batch_size
+		self.input_shape = input_shape
+		self.x_train = x_train
+		self.x_test = x_test
+		self.x_test = x_test
+		self.y_train = y_train
+		self.y_test = y_test
+		self.x_cong_test = x_cong_test
+		self.y_cong_test = y_cong_test
+		self.x_incong_test = x_incong_test
+		self.y_incong_test = y_incong_test
+		self.cache_is_empty = False
 
-	# Returns
-		Tuple of Numpy arrays: `(x_train, y_train), (x_test, y_test)`.
-	"""
-	imagePaths = sorted(list(paths.list_images(path)))
-	random.seed(42)
-	random.shuffle(imagePaths)
-	data = []
-	counting_labels = []
-	size_labels = []
-	# loop over the input images
-	for imagePath in imagePaths:
-		# load the image, pre-process it, and store it in the data list
-		image = cv2.imread(imagePath)
-		image = cv2.resize(image, (100, 100))
-		image = img_to_array(image)
-		data.append(image)
 
-		# extract the class label from the image path and update the
-		# labels list
-		image_name = imagePath.split(os.path.sep)[-1]
-		image_name = image_name[0:image_name.rindex('.')]
-		file_name_arr = image_name.split('_')
-		size_perception_label = file_name_arr[0]
-		size_labels.append(size_perception_label)
-		counting_label = file_name_arr[1]
-		counting_labels.append(counting_label)
-
-	# scale the raw pixel intensities to the range [0, 1]
-	final_data = np.array(data, dtype="float") / 255.0
-	if mode == 'size':
-		final_labels = np.array(size_labels)
-	else:
-		final_labels = np.array(counting_labels)
-
-	(x_train, x_test, Y_train, Y_test) = train_test_split(final_data, final_labels, test_size=0.2, random_state=101)
-	return (x_train, Y_train), (x_test, Y_test)
-
+def refresh_classification_cache():
+	return TrainClassificationCache()
 
 def prepare_and_plot_dist(mode_name, Y_train, Y_test, current_generation):
 	df_train = pd.DataFrame()
@@ -183,7 +174,6 @@ def compile_model_cnn(genome, nb_classes, input_shape):
 			model.add(Conv2D(nb_neurons[i], kernel_size=(3, 3), activation=activation, padding='same',
 							 input_shape=input_shape))
 		else:
-			print("index is {} and num_neurons is {} and nb_layers size is {}".format(i, len(nb_neurons), nb_layers))
 			model.add(Conv2D(nb_neurons[i], kernel_size=(3, 3), activation=activation))
 
 		if i < 2:  # otherwise we hit zero
@@ -199,9 +189,19 @@ def compile_model_cnn(genome, nb_classes, input_shape):
 
 	# BAYESIAN CONVOLUTIONAL NEURAL NETWORKS WITH BERNOULLI APPROXIMATE VARIATIONAL INFERENCE
 
-	model.compile(loss='categorical_crossentropy',
+	bce = losses.BinaryCrossentropy(reduction='none')
+	model.compile(loss=bce,
 				  optimizer=optimizer,
 				  metrics=['accuracy'])
+
+    # calculate the loss of congruent and incongruent sepatately
+ 	# bce = tf.keras.losses.BinaryCrossentropy(reduction='none')
+	# bce(y_true, y_pred).numpy()
+	# array([0.9162905, 0.5919184, 0.79465103, 1.0549198], dtype=float32)
+
+	# model.compile(loss='categorical_crossentropy',
+	# 			  optimizer=optimizer,
+	# 			  metrics=['accuracy'])
 
 	return model
 
@@ -222,17 +222,26 @@ def plot_genome_after_training_on_epochs_is_done(genome, mode, epochs, val_acc, 
 	plt.savefig("models/best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}.jpg".format(date, mode, genome.generation, genome.u_ID, best_accuracy, best_loss))
 
 
-def train_and_score(genome, dataset, mode, path, epochs, debug_mode, max_val_accuracy, model=None):
-	"""Train the model, return test loss.
-	Args:
-		network (dict): the parameters of the network
-		dataset (str): Dataset to use for training/evaluating
+def train_and_score(genome, dataset, mode, path, batch_size, epochs, debug_mode, max_val_accuracy, trainer_classification_cache, model=None):
 
-	"""
 	logging.info("Preparing stimuli")
-
 	if dataset == 'size_count':
-		nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, epochs = classify_labels_according_to_mode(mode, path, epochs)
+		if not trainer_classification_cache.cache_is_empty:
+			nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, x_cong_test, y_cong_test, x_incong_test, y_incong_test = trainer_classification_cache.nb_classes, \
+																					trainer_classification_cache.batch_size,\
+																					trainer_classification_cache.input_shape, \
+																					trainer_classification_cache.x_train, \
+																					trainer_classification_cache.x_test, \
+																					trainer_classification_cache.y_train, \
+																					trainer_classification_cache.y_test, \
+																					trainer_classification_cache.x_cong_test, \
+																					trainer_classification_cache.y_cong_test, \
+																					trainer_classification_cache.x_incong_test, \
+																					trainer_classification_cache.y_incong_test
+		else:
+			nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, x_cong_test, y_cong_test, x_incong_test, y_incong_test = classify_labels_according_to_mode(mode, path, batch_size)
+			trainer_classification_cache.update_classification_cache(nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, x_cong_test, y_cong_test, x_incong_test, y_incong_test)
+
 
 	if not model:
 		logging.info("*********** Creating a new Keras model for individual %s ***********" % genome.u_ID)
@@ -254,7 +263,36 @@ def train_and_score(genome, dataset, mode, path, epochs, debug_mode, max_val_acc
 						validation_data=(x_test, y_test),
 						callbacks=[history,early_stopper]) # using early stopping so no real limit - don't want to waste time on horrible architectures
 
-	score = model.evaluate(x=x_test, y=y_test, verbose=0)
+	score = model.evaluate(x=x_test, y=y_test, batch_size=batch_size, verbose=0)
+
+	# taking the last epocj result to be kept ( and not all the loss and accuracies from all epochs, since the last epoch is the best)
+	training_accuracy = history.history["accuracy"][-1]
+	validation_accuracy = history.history["val_accuracy"][-1]
+	training_loss = history.history["loss"][-1]
+	validation_loss = history.history["val_loss"][-1]
+
+	score_congruent = model.evaluate(x=x_cong_test, y=y_cong_test, batch_size=batch_size, verbose=0)
+	score_incongruent = model.evaluate(x=x_incong_test, y=y_incong_test, batch_size=batch_size, verbose=0)
+
+	validation_accuracy_congruent = score_congruent[1]
+	validation_accuracy_incongruent = score_incongruent[1]
+	validation_loss_congruent = score_congruent[0]
+	validation_loss_incongruent = score_incongruent[0]
+
+	data_per_subject = DataPerSubject(genome.u_ID,
+				 training_accuracy,
+				 validation_accuracy,
+				 training_loss,
+				 validation_loss,
+				 validation_accuracy_congruent,
+				 validation_accuracy_incongruent,
+				 validation_loss_congruent,
+				 validation_loss_incongruent)
+
+	training_set_size = len(x_train)
+	validation_set_size = len(x_test)
+	validation_set_size_congruent = len(x_cong_test)
+
 	#savig the results of each prediction
 	y_test_prediction = model.predict(x=x_test, batch_size=batch_size, verbose=0)
 
@@ -311,7 +349,7 @@ def train_and_score(genome, dataset, mode, path, epochs, debug_mode, max_val_acc
 
 	K.clear_session()
 	# getting only the last values
-	return best_current_val_accuracy, best_current_val_loss, y_test_corrected, model
+	return best_current_val_accuracy, best_current_val_loss, y_test_corrected, model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent
 
 
 class LossHistory(Callback):

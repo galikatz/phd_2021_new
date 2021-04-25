@@ -1,6 +1,7 @@
 import matlab.engine
 import argparse
-
+import fnmatch
+import os
 
 def main(arguments):
 	eng = matlab.engine.start_matlab()
@@ -10,11 +11,17 @@ def main(arguments):
 	eng.quit()
 
 
-def generate_new_images(congruency, equate, savedir, index):
+def generate_new_images(congruency, equate, savedir, index, prefix=None):
 	eng = matlab.engine.start_matlab()
 	eng.addpath('/Users/gali.k/phd/Genereating_dot_arrays')
 	eng.pipeline_from_python(congruency, equate, savedir, str(index), nargout=0)
 	eng.quit()
+	if prefix:
+		number_files_created = len(fnmatch.filter(os.listdir(savedir + "_" + str(index)), prefix +'*.jpg'))
+	else:
+		number_files_created = len(fnmatch.filter(os.listdir(savedir + "_" + str(index)), '*.jpg'))
+	return number_files_created
+
 
 
 if __name__ == '__main__':

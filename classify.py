@@ -22,17 +22,21 @@ def main(args):
 	create_model(x_train, y_train, x_test, y_test)
 
 
-def classify_labels_according_to_mode(mode, path, epochs):
+def classify_labels_according_to_mode(mode, path, batch_size) :
 	nb_classes = 2
-	batch_size = 60
+	batch_size = batch_size
 
 	# Input image dimensions
 	input_shape = (IMG_SIZE, IMG_SIZE, 3)#RGB
-	(x_train, y_train), (x_test, y_test) = creating_train_test_data(path, "katzin", mode)
+	(x_train, y_train), (x_test, y_test), (x_cong_test, y_cong_test), (x_incong_test, y_incong_test) = creating_train_test_data(path, "katzin", mode)
 	y_train = to_categorical(y_train, nb_classes)
 	y_test = to_categorical(y_test, nb_classes)
-	print('y_train size: {} y_test size: {}'.format(len(y_train), len(y_test)))
-	return nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, epochs
+	y_cong_test = to_categorical(y_cong_test, nb_classes)
+	y_incong_test = to_categorical(y_incong_test, nb_classes)
+
+
+	logging.info('y_train size: %s y_test size: %s' % (len(y_train), len(y_test)))
+	return nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, x_cong_test, y_cong_test, x_incong_test, y_incong_test
 
 
 def create_model(x_train, y_train, x_test, y_test):
@@ -149,14 +153,51 @@ def extract_label(file_name, stimuli_type, task):
 # Labeling and creating / switching tasks
 #########################################
 def creating_train_test_data(dir, stimuli_type, mode):
-	logging.info("*** Classifying and labeling accroding to mode %s ***" % mode)
-	data = []
-	files = glob.glob(dir + os.sep + '*.jpg')
-	logging.info("got %s files to train " % len(files))
+	logging.info("########## Classifying and labeling accroding to mode %s #########" % mode)
+
+	incong_files = glob.glob(dir + os.sep + 'incong*.jpg')
+	cong_files = glob.glob(dir + os.sep + 'cong*.jpg')
+	logging.info("got %s incong and %s cong files to train " % (len(incong_files), len(cong_files)))
 	# this is for the first time basically
+	(x_incong_train, x_incong_test, y_incong_train, y_incong_test) = classify_and_split_to_train_test(mode, incong_files, stimuli_type)
+	(x_cong_train, x_cong_test, y_cong_train, y_cong_test) = classify_and_split_to_train_test(mode, cong_files, stimuli_type)
+
+	x_train, y_train = create_balanced_incong_cong_train_test(x_incong_train, y_incong_train, x_cong_train, y_cong_train)
+	x_test, y_test = create_balanced_incong_cong_train_test(x_incong_test, y_incong_test, x_cong_test, y_cong_test)
+	x_cong_test, y_cong_test = create_balanced_incong_cong_train_test(x_cong_test, y_cong_test, [], [])
+	x_incong_test, y_incong_test = create_balanced_incong_cong_train_test([], [], x_incong_test, y_incong_test)
+
+	return (x_train, y_train), (x_test, y_test), (x_cong_test, y_cong_test), (x_incong_test, y_incong_test)
+
+def create_balanced_incong_cong_train_test(x_incong_stimuli, y_incong_labels, x_cong_stimuli, y_cong_labels):
+	# wrap in touples before shuffeling to incong and cong:
+	list_of_touples = []
+	for i in range(0,len(x_incong_stimuli)):
+		touple_of_stimuli_and_label = (x_incong_stimuli[i], y_incong_labels[i])
+		list_of_touples.append(touple_of_stimuli_and_label)
+
+	for i in range(0, len(x_cong_stimuli)):
+		touple_of_stiuli_and_label = (x_cong_stimuli[i], y_cong_labels[i])
+		list_of_touples.append(touple_of_stiuli_and_label)
+
+	shuffled = shuffle(list_of_touples)
+	# unwrap the toupling
+	x = []
+	y = []
+
+	for i in range(0, len(shuffled)):
+		stimuli = shuffled[i][0]
+		label = shuffled[i][1]
+		x.append(stimuli)
+		y.append(label)
+
+	return np.array(x), np.array(y)
+
+def classify_and_split_to_train_test(mode, files, stimuli_type):
+	data = []
 	task = mode
 	for path in files:
-		#print(path)
+		# print(path)
 		# Classification: returns 0 if left stimuli is more white/ bigger numerically and 1 otherwise.
 		label = extract_label(path, stimuli_type, task)
 		rgba_image = Image.open(path)
@@ -165,8 +206,6 @@ def creating_train_test_data(dir, stimuli_type, mode):
 		img = rgb_image.copy()
 		data.append([np.array(img), label['classification_label']])
 
-	# shuffle the collection
-	data = shuffle(data)
 	final_data = []
 	final_labels = []
 	for entry in data:
@@ -176,8 +215,8 @@ def creating_train_test_data(dir, stimuli_type, mode):
 		final_labels.append(label)
 	final_data_after_normalization = np.array(final_data, dtype="float") / 255.0
 	final_labels_as_np_array = np.array(final_labels)
-	(x_train, x_test, y_train, y_test) = train_test_split(final_data_after_normalization, final_labels_as_np_array, test_size=0.2, random_state=101)
-	return (x_train, y_train), (x_test, y_test)
+	(x_train, x_test, y_train, y_test) = train_test_split(final_data_after_normalization, final_labels_as_np_array, test_size=0.2, random_state=101, shuffle=True)
+	return (x_train, x_test, y_train, y_test)
 
 
 if __name__ == '__main__':
