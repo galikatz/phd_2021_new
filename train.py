@@ -38,6 +38,7 @@ matplotlib.use('TkAgg')
 # Helper: Early stopping.
 early_stopper = EarlyStopping(monitor='val_loss', min_delta=0.1, patience=2, verbose=0, mode='auto')
 
+
 class TrainClassificationCache:
 	def __init__(self):
 		self.nb_classes = None
