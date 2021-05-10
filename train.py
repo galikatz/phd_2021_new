@@ -54,7 +54,6 @@ class TrainClassificationCache:
 		self.y_incong_test = None
 		self.cache_is_empty = True
 
-
 	def update_classification_cache(self, nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, x_cong_test, y_cong_test, x_incong_test, y_incong_test):
 		self.nb_classes = nb_classes
 		self.batch_size = batch_size
