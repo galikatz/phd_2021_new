@@ -3,6 +3,7 @@ import argparse
 import fnmatch
 import os
 
+
 def main(arguments):
 	eng = matlab.engine.start_matlab()
 	eng.addpath('/Users/gali.k/phd/Genereating_dot_arrays')
@@ -11,10 +12,10 @@ def main(arguments):
 	eng.quit()
 
 
-def generate_new_images(congruency, equate, savedir, index, prefix=None):
+def generate_new_images(congruency, equate, savedir, index, prefix=None, ratio=50):
 	eng = matlab.engine.start_matlab()
 	eng.addpath('/Users/gali.k/phd/Genereating_dot_arrays')
-	eng.pipeline_from_python(congruency, equate, savedir, str(index), nargout=0)
+	eng.pipeline_from_python(congruency, equate, savedir, str(index), ratio, nargout=0)
 	eng.quit()
 	if prefix:
 		number_files_created = len(fnmatch.filter(os.listdir(savedir + "_" + str(index)), prefix +'*.jpg'))

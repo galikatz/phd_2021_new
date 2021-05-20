@@ -14,34 +14,14 @@ from keras.layers import Dense, Dropout, Flatten, BatchNormalization, Activation
 from keras.constraints import maxnorm
 from keras.utils.np_utils import to_categorical
 from keras.layers.convolutional import Conv2D, MaxPooling2D
+from evolution_utils import RATIOS
 
 IMG_SIZE = 100
-
-def main(args):
-	(x_train, y_train), (x_test, y_test) = creating_train_test_data(args.images_dir, args.stimuli_type, args.mode)
-	create_model(x_train, y_train, x_test, y_test)
-
-
-def classify_labels_according_to_mode(mode, path, batch_size) :
-	nb_classes = 2
-	batch_size = batch_size
-
-	# Input image dimensions
-	input_shape = (IMG_SIZE, IMG_SIZE, 3)#RGB
-	(x_train, y_train), (x_test, y_test), (x_cong_test, y_cong_test), (x_incong_test, y_incong_test) = creating_train_test_data(path, "katzin", mode)
-	y_train = to_categorical(y_train, nb_classes)
-	y_test = to_categorical(y_test, nb_classes)
-	y_cong_test = to_categorical(y_cong_test, nb_classes)
-	y_incong_test = to_categorical(y_incong_test, nb_classes)
-
-
-	logging.info('y_train size: %s y_test size: %s' % (len(y_train), len(y_test)))
-	return nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test, x_cong_test, y_cong_test, x_incong_test, y_incong_test
 
 
 def create_model(x_train, y_train, x_test, y_test):
 	# one hot encoding outputs
-	y_train = np_utils.to_categorical(y_train)#converting to binary
+	y_train = np_utils.to_categorical(y_train)  #converting to binary
 	y_test = np_utils.to_categorical(y_test)
 	num_classes = y_test.shape[1]
 
@@ -152,22 +132,50 @@ def extract_label(file_name, stimuli_type, task):
 #########################################
 # Labeling and creating / switching tasks
 #########################################
-def creating_train_test_data(dir, stimuli_type, mode):
+def creating_train_test_data(dir, stimuli_type, mode, nb_classes):
 	logging.info("########## Classifying and labeling accroding to mode %s #########" % mode)
 
 	incong_files = glob.glob(dir + os.sep + 'incong*.jpg')
 	cong_files = glob.glob(dir + os.sep + 'cong*.jpg')
-	logging.info("got %s incong and %s cong files to train " % (len(incong_files), len(cong_files)))
+	logging.info("Got %s incong and %s cong files to train " % (len(incong_files), len(cong_files)))
 	# this is for the first time basically
 	(x_incong_train, x_incong_test, y_incong_train, y_incong_test) = classify_and_split_to_train_test(mode, incong_files, stimuli_type)
 	(x_cong_train, x_cong_test, y_cong_train, y_cong_test) = classify_and_split_to_train_test(mode, cong_files, stimuli_type)
 
+	# main dataset
 	x_train, y_train = create_balanced_incong_cong_train_test(x_incong_train, y_incong_train, x_cong_train, y_cong_train)
 	x_test, y_test = create_balanced_incong_cong_train_test(x_incong_test, y_incong_test, x_cong_test, y_cong_test)
+
+	# congruency dataset
+	x_cong_train, y_cong_train = create_balanced_incong_cong_train_test(x_cong_train, y_cong_train, [], [])
+	x_incong_train, y_incong_train= create_balanced_incong_cong_train_test([], [], x_incong_train, y_incong_train)
 	x_cong_test, y_cong_test = create_balanced_incong_cong_train_test(x_cong_test, y_cong_test, [], [])
 	x_incong_test, y_incong_test = create_balanced_incong_cong_train_test([], [], x_incong_test, y_incong_test)
 
-	return (x_train, y_train), (x_test, y_test), (x_cong_test, y_cong_test), (x_incong_test, y_incong_test)
+	y_train = to_categorical(y_train, nb_classes)
+	y_test = to_categorical(y_test, nb_classes)
+	y_cong_train = to_categorical(y_cong_train, nb_classes)
+	y_incong_train = to_categorical(y_incong_train, nb_classes)
+	y_cong_test = to_categorical(y_cong_test, nb_classes)
+	y_incong_test = to_categorical(y_incong_test, nb_classes)
+
+	ratios_dataset = {}
+	for ratio in RATIOS:
+		ratio_cong_files = glob.glob(dir + os.sep + 'cong' + str(ratio) + '*.jpg')
+		ratio_incong_files = glob.glob(dir + os.sep + 'incong' + str(ratio) + '*.jpg')
+		logging.info("Got %s %s cong files to train and %s %s incong files to train" % (str(ratio), len(ratio_cong_files), str(ratio), len(ratio_incong_files)))
+		(x_ratio_cong_train, x_ratio_cong_test, y_ratio_cong_train, y_ratio_cong_test) = classify_and_split_to_train_test(mode, ratio_cong_files, stimuli_type)
+		(x_ratio_incong_train, x_ratio_incong_test, y_ratio_incong_train, y_ratio_incong_test) = classify_and_split_to_train_test(mode, ratio_incong_files, stimuli_type)
+		x_ratio_cong_test, y_ratio_cong_test = create_balanced_incong_cong_train_test(x_ratio_cong_test, y_ratio_cong_test, [], [])
+		x_ratio_incong_test, y_ratio_incong_test = create_balanced_incong_cong_train_test([], [], x_ratio_incong_test, y_ratio_incong_test)
+
+		y_ratio_cong_test = to_categorical(y_ratio_cong_test, nb_classes)
+		y_ratio_incong_test = to_categorical(y_ratio_incong_test, nb_classes)
+
+		ratios_dataset.update({ratio: [(x_ratio_cong_test, y_ratio_cong_test), (x_ratio_incong_test, y_ratio_incong_test)]})
+
+	return (x_train, y_train), (x_test, y_test), (x_cong_train, y_cong_train), (x_incong_train, y_incong_train), (x_cong_test, y_cong_test), (x_incong_test, y_incong_test), ratios_dataset
+
 
 def create_balanced_incong_cong_train_test(x_incong_stimuli, y_incong_labels, x_cong_stimuli, y_cong_labels):
 	# wrap in touples before shuffeling to incong and cong:

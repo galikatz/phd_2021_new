@@ -14,6 +14,8 @@ from sklearn.utils import shuffle
 from train import refresh_classification_cache
 from evolution_utils import create_evolution_analysis_per_task_per_equate_csv, concat_dataframes_into_raw_data_csv_cross_generations, DataAllSubjects
 import glob
+from evolution_utils import RATIOS, RATIO_NUMBERS
+import sys
 
 MIN_DIFF = 100
 # Setup logging.
@@ -37,7 +39,7 @@ def train_genomes(genomes, individuals_models, dataset, mode, path, batch_size, 
 
 	################## loop over all individuals ##################
 	#refresh classify cache
-	logging.info("####################### Refreshing classification cache, once in a generation #######################");
+	logging.info("####################### Refreshing classification cache, once in a generation #######################")
 	trainer_classification_cache = refresh_classification_cache()
 	data_per_subject_list = []
 	for genome in genomes:
@@ -144,12 +146,11 @@ def generate(generations, generation_index, population, all_possible_genes, data
 		# if there is no model existing for this genome it will create one.
 		best_accuracy, best_loss, individuals_models, avg_accuracy,	data_from_all_subjects,  training_set_size, validation_set_size, validation_set_size_congruent = train_genomes(genomes, individual_models, dataset, actual_mode, images_dir_per_gen, batch_size, epochs, debug_mode, mode_th)
 
-
 		if (mode != "size-count" and mode != "random-count") and avg_accuracy >= stopping_th:
 			logging.info("Done training! average_accuracy is %s" % str(avg_accuracy))
 			break
 
-		if mode == "size-count" or mode == "random-count": # this is for the first time before the switch
+		if mode == "size-count" or mode == "random-count":  # this is for the first time before the switch
 			if avg_accuracy >= mode_th:
 				if avg_accuracy >= stopping_th:
 					if already_switched:
@@ -202,43 +203,60 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	logging.info("Creating results csvs")
 	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, "evolution_analysis_raw_data.csv")
 
+
 def creating_images_for_current_generation(images_dir_per_gen, images_dir, i, should_delete_stimuli, congruency, equate, savedir, actual_mode, generations):
+	total_num_of_files = 0
+	total_num_of_cong = 0
+	total_num_of_incong = 0
+	num_of_files_per_ratio = {}
 	if not os.path.exists(images_dir_per_gen):
 		# delete old images
 		if should_delete_stimuli and os.path.exists(images_dir + "_" + str(i - 1)):
 			shutil.rmtree(images_dir + "_" + str(i - 1))
 		# now generate the next dir
 		if congruency == 2:  # both cong and incong are required
-			num_of_incong = generate_new_images(0, equate, savedir, i, "incong")
-			num_of_cong = generate_new_images(1, equate, savedir, i, "cong")
+			for ratio in RATIOS:
+				num_of_incong = generate_new_images(0, equate, savedir, i, "incong" + str(ratio), ratio)
+				num_of_cong = generate_new_images(1, equate, savedir, i, "cong" + str(ratio), ratio)
+				# balance incong and cong sizes:
+				while num_of_cong - num_of_incong > MIN_DIFF:
+					# create more incongruent
+					num_of_incong = generate_new_images(0, equate, savedir, i, "incong" + str(ratio), ratio)
 
-			# balance incong and cong sizes:
-			while num_of_cong - num_of_incong > MIN_DIFF:
-				# create more incongruent
-				num_of_incong = generate_new_images(0, equate, savedir, i, "incong")
+				while num_of_incong - num_of_cong > MIN_DIFF:
+					# create more congruent
+					num_of_cong = generate_new_images(1, equate, savedir, i, "cong" + str(ratio), ratio)
+				# else they are equal - no need to create / delete anything
 
-			while num_of_incong - num_of_cong > MIN_DIFF:
-				# create more congruent
-				num_of_cong = generate_new_images(1, equate, savedir, i, "cong")
+				# now balance per ratio
 
-			if num_of_cong > num_of_incong:
-				diff = num_of_cong - num_of_incong
-				delete_extra_files("cong", diff, images_dir_per_gen)
+				if num_of_cong > num_of_incong:
+					diff = num_of_cong - num_of_incong
+					delete_extra_files("cong" + str(ratio), diff, images_dir_per_gen)
+				if num_of_incong > num_of_cong:
+					diff = num_of_incong - num_of_cong
+					delete_extra_files("incong" + str(ratio), diff, images_dir_per_gen)
 
-			elif num_of_cong < num_of_incong:
-				diff = num_of_incong - num_of_cong
-				delete_extra_files("incong", diff, images_dir_per_gen)
+				num_of_files_per_ratio.update({ratio: (num_of_incong + num_of_cong)})
 
-			# else they are equal - no need to create / delete anything
+			# now balance the amount of files in all ratios to be the same.
+			min_num_of_files = sys.maxint
+			for ratio in RATIOS:
+				if min_num_of_files > num_of_files_per_ratio[ratio]:
+					min_num_of_files = num_of_files_per_ratio[ratio]
+			for ratio in RATIOS:
+				diff = num_of_files_per_ratio[ratio] - min_num_of_files
+				diff = int(diff/2)
+				delete_extra_files("incong" + str(ratio), diff, images_dir_per_gen)
+				delete_extra_files("cong" + str(ratio), diff, images_dir_per_gen)
 
-			num_of_cong = glob.glob(images_dir_per_gen + os.sep + 'cong*.jpg')
-			num_of_incong = glob.glob(images_dir_per_gen + os.sep + 'incong*.jpg')
-			num_of_files = num_of_cong + num_of_incong
+			total_num_of_cong += len(glob.glob(images_dir_per_gen + os.sep + 'cong*.jpg'))
+			total_num_of_incong += len(glob.glob(images_dir_per_gen + os.sep + 'incong*.jpg'))
+			total_num_of_files += (total_num_of_cong + total_num_of_incong)
 		else:
-			num_of_files = generate_new_images(congruency, equate, savedir, i)
+			total_num_of_files = len(generate_new_images(congruency, equate, savedir, i))
 
-		logging.info("Number of files created is: %s, incong: %s, cong: %s" % (
-		len(num_of_files), len(num_of_incong), len(num_of_cong)))
+		logging.info("Number of files created is: %s, incong: %s, cong: %s" % (total_num_of_files, total_num_of_incong, total_num_of_cong))
 	logging.info("********* Now in mode %s generation %d out of %d reading images from dir: %s *********" % (actual_mode, i, generations, images_dir_per_gen))
 
 
