@@ -14,7 +14,7 @@ from sklearn.utils import shuffle
 from train import refresh_classification_cache
 from evolution_utils import create_evolution_analysis_per_task_per_equate_csv, concat_dataframes_into_raw_data_csv_cross_generations, DataAllSubjects
 import glob
-from evolution_utils import RATIOS, RATIO_NUMBERS
+from evolution_utils import RATIOS
 import sys
 
 MIN_DIFF = 100
@@ -240,16 +240,26 @@ def creating_images_for_current_generation(images_dir_per_gen, images_dir, i, sh
 				num_of_files_per_ratio.update({ratio: (num_of_incong + num_of_cong)})
 
 			# now balance the amount of files in all ratios to be the same.
-			min_num_of_files = sys.maxint
+			min_num_of_files = 100000
+			min_ration = -1
 			for ratio in RATIOS:
 				if min_num_of_files > num_of_files_per_ratio[ratio]:
 					min_num_of_files = num_of_files_per_ratio[ratio]
+					min_ration = ratio
+			logging.info("Minimum number is: %s fo ratio: %s" % (min_num_of_files, min_ration))
+			logging.info("Original data before deletion per ratio: %s" % num_of_files_per_ratio)
 			for ratio in RATIOS:
 				diff = num_of_files_per_ratio[ratio] - min_num_of_files
-				diff = int(diff/2)
-				delete_extra_files("incong" + str(ratio), diff, images_dir_per_gen)
-				delete_extra_files("cong" + str(ratio), diff, images_dir_per_gen)
+				half_diff = int(diff/2)
+				logging.info("Going to delete : %s files from ratio %s, half %s cong, original was: %s" % (diff, ratio, half_diff, num_of_files_per_ratio[ratio]))
+				delete_extra_files("incong" + str(ratio), half_diff, images_dir_per_gen)
+				delete_extra_files("cong" + str(ratio), half_diff, images_dir_per_gen)
+				num_of_incong = len(glob.glob(images_dir_per_gen + os.sep + 'incong' + str(ratio) + '*.jpg'))
+				num_of_cong = len(glob.glob(images_dir_per_gen + os.sep + 'cong' + str(ratio) + '*.jpg'))
+				num_of_files_per_ratio.update({ratio: (num_of_incong + num_of_cong)})
+				logging.info("Number of files per ratio: %s is: incong: %s, cong: %s" % (ratio, num_of_incong,  num_of_cong))
 
+			logging.info("Data after deletion per ratio: %s" % num_of_files_per_ratio)
 			total_num_of_cong += len(glob.glob(images_dir_per_gen + os.sep + 'cong*.jpg'))
 			total_num_of_incong += len(glob.glob(images_dir_per_gen + os.sep + 'incong*.jpg'))
 			total_num_of_files += (total_num_of_cong + total_num_of_incong)

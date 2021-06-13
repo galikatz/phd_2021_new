@@ -1,9 +1,10 @@
 import pandas as pd
 import numpy as np
 
-#  RATIOS = [50,55,67,70,75,85] - these are the ratios if we cut after first point
-RATIOS = [50, 56, 63, 71, 75, 85]
-RATIO_NUMBERS = {50: [5, 10], 56: [5, 9], 63: [5, 8], 71: [5, 7], 75: [6, 8], 85: [6, 7]}
+
+RATIOS = [50, 56, 63, 71, 75, 86]
+RATIO_NUMBERS = {50: [5, 10], 56: [5, 9], 63: [5, 8], 71: [5, 7], 75: [6, 8], 86: [6, 7]}
+
 
 class DataPerSubject:
 	def __init__(self, subject_uid,
@@ -60,7 +61,7 @@ def create_evolution_analysis_per_task_per_equate_csv(generation,
 													  validation_set_size,
 													  validation_set_size_congruent):
 	evolution_analysis_result = []
-	#for every generation
+	# for every generation
 	headers = ['Subject',
 			   'Subject_UID',
 			   'Task',
@@ -79,14 +80,14 @@ def create_evolution_analysis_per_task_per_equate_csv(generation,
 			   'Training_Loss_Congruent', 'Training_Loss_Incongruent',
 			   'Ratio 50 Congruent Validation Accuracy','Ratio 50 Congruent Validation Loss',
 			   'Ratio 50 Incongruent Validation Accuracy','Ratio 50 Incongruent Validation Loss',
-			   'Ratio 55 Congruent Validation Accuracy','Ratio 55 Congruent Validation Loss',
-			   'Ratio 55 Incongruent Validation Accuracy','Ratio 55 Incongruent Validation Loss',
-			   'Ratio 65 Congruent Validation Accuracy','Ratio 65 Congruent Validation Loss',
-			   'Ratio 65 Incongruent Validation Accuracy','Ratio 65 Incongruent Validation Loss',
+			   'Ratio 56 Congruent Validation Accuracy','Ratio 56 Congruent Validation Loss',
+			   'Ratio 56 Incongruent Validation Accuracy','Ratio 56 Incongruent Validation Loss',
+			   'Ratio 63 Congruent Validation Accuracy','Ratio 63 Congruent Validation Loss',
+			   'Ratio 63 Incongruent Validation Accuracy','Ratio 63 Incongruent Validation Loss',
 			   'Ratio 75 Congruent Validation Accuracy','Ratio 75 Congruent Validation Loss',
 			   'Ratio 75 Incongruent Validation Accuracy','Ratio 75 Incongruent Validation Loss',
-			   'Ratio 85 Congruent Validation Accuracy','Ratio 85 Congruent Validation Loss',
-			   'Ratio 85 Incongruent Validation Accuracy','Ratio 85 Incongruent Validation Loss']
+			   'Ratio 86 Congruent Validation Accuracy','Ratio 86 Congruent Validation Loss',
+			   'Ratio 86 Incongruent Validation Accuracy','Ratio 86 Incongruent Validation Loss']
 
 	for subject in range (0, population):
 
@@ -101,19 +102,15 @@ def create_evolution_analysis_per_task_per_equate_csv(generation,
 			   data_from_all_subjects.validation_losses[subject],
 			   training_set_size,
 			   validation_set_size,
-			   validation_set_size_congruent,
-			   data_from_all_subjects.validation_accuracies_congruent[subject],
-			   data_from_all_subjects.validation_accuracies_incongruent[subject],
-			   data_from_all_subjects.training_accuracies_congruent[subject],
-			   data_from_all_subjects.training_accuracies_incongruent[subject]]
+			   validation_set_size_congruent]
 
 		ratios_dataset = data_from_all_subjects.ratio_results[subject]
 
 		for ratio in RATIOS:
-			row.append(round(ratios_dataset[ratio]["ratio_validation_accuracy_congruent"], 4))
-			row.append(round(ratios_dataset[ratio]["ratio_validation_loss_congruent"], 4)),
-			row.append(round(ratios_dataset[ratio]["ratio_validation_accuracy_incongruent"], 4)),
-			row.append(round(ratios_dataset[ratio]["ratio_validation_loss_incongruent"], 4))
+			row.append(round(ratios_dataset[ratio][0]["ratio_validation_accuracy_congruent"], 4))
+			row.append(round(ratios_dataset[ratio][1]["ratio_validation_loss_congruent"], 4)),
+			row.append(round(ratios_dataset[ratio][2]["ratio_validation_accuracy_incongruent"], 4)),
+			row.append(round(ratios_dataset[ratio][3]["ratio_validation_loss_incongruent"], 4))
 
 		evolution_analysis_result.append(row)
 

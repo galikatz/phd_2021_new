@@ -49,6 +49,10 @@ class TrainClassificationCache:
         self.x_test = None
         self.y_train = None
         self.y_test = None
+        self.x_cong_train = None
+        self.y_cong_train = None
+        self.x_incong_train = None
+        self.y_incong_train = None
         self.x_cong_test = None
         self.y_cong_test = None
         self.x_incong_test = None
@@ -57,7 +61,7 @@ class TrainClassificationCache:
         self.cache_is_empty = True
 
     def update_classification_cache(self, nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test,
-                                    x_cong_test, y_cong_test, x_incong_test, y_incong_test, ratios_dataset):
+                                    x_cong_train, y_cong_train, x_incong_train, y_incong_train, x_cong_test, y_cong_test, x_incong_test, y_incong_test, ratios_dataset):
         self.nb_classes = nb_classes
         self.batch_size = batch_size
         self.input_shape = input_shape
@@ -70,6 +74,10 @@ class TrainClassificationCache:
         self.y_cong_test = y_cong_test
         self.x_incong_test = x_incong_test
         self.y_incong_test = y_incong_test
+        self.x_cong_train = x_cong_train
+        self.y_cong_train = y_cong_train
+        self.x_incong_train = x_incong_train
+        self.y_incong_train = y_incong_train
         self.ratios_dataset = ratios_dataset
         self.cache_is_empty = False
 
@@ -218,7 +226,8 @@ def train_and_score(genome, dataset, mode, path, batch_size, epochs, debug_mode,
             (x_train, y_train), (x_test, y_test), (x_cong_train, y_cong_train), (x_incong_train, y_incong_train), (x_cong_test, y_cong_test), (x_incong_test, y_incong_test), ratios_dataset= creating_train_test_data(
                 dir=path, stimuli_type="katzin", mode=mode, nb_classes=nb_classes)
             trainer_classification_cache.update_classification_cache(nb_classes, batch_size, input_shape, x_train,
-                                                                     x_test, y_train, y_test, x_cong_test, y_cong_test,
+                                                                     x_test, y_train, y_test, x_cong_train, y_cong_train,
+                                                                     x_incong_train, y_incong_train, x_cong_test, y_cong_test,
                                                                      x_incong_test, y_incong_test, ratios_dataset)
 
     if not model:
