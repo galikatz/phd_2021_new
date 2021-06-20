@@ -1,5 +1,8 @@
 """Entry point to evolving the neural network. Start here."""
 from __future__ import print_function
+
+import time
+
 from evolver import Evolver
 from tqdm import tqdm
 import logging
@@ -133,7 +136,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	dataframe_list_of_results = []
 
 	################ loop over generations ######################
-
+	start_time = time.time()
 	for i in range(generation_index, generations + 1):
 		### Every new generation we create new stimuli ###
 		images_dir_per_gen = images_dir + "_" + str(i)
@@ -190,7 +193,6 @@ def generate(generations, generation_index, population, all_possible_genes, data
 																	   validation_set_size_congruent)
 		dataframe_list_of_results.append(df_per_gen)
 
-
 	logging.info("************ End of generations loop - evolution is over, avg accuracy: %.2f%%, best accuracy: %.2f%% and loss: %.2f%% **************" % (avg_accuracy * 100, best_accuracy * 100, best_loss))
 	# Sort our final population according to performance.
 	genomes = sorted(genomes, key=lambda x: x.accuracy, reverse=True)
@@ -201,7 +203,8 @@ def generate(generations, generation_index, population, all_possible_genes, data
 
 	# creating result csvs:
 	logging.info("Creating results csvs")
-	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, "evolution_analysis_raw_data.csv")
+	total_time = (time.time() - start_time) / 60
+	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, "Results_[Generations:%s_Population:_%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes].csv" % (str(generations), str(population), str(epochs), avg_accuracy, str(total_time)))
 
 
 def creating_images_for_current_generation(images_dir_per_gen, images_dir, i, should_delete_stimuli, congruency, equate, savedir, actual_mode, generations):

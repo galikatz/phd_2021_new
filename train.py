@@ -170,15 +170,6 @@ def compile_model_cnn(genome, nb_classes, input_shape):
                   optimizer=optimizer,
                   metrics=['accuracy'])
 
-    # calculate the loss of congruent and incongruent sepatately
-    # bce = tf.keras.losses.BinaryCrossentropy(reduction='none')
-    # bce(y_true, y_pred).numpy()
-    # array([0.9162905, 0.5919184, 0.79465103, 1.0549198], dtype=float32)
-
-    # model.compile(loss='categorical_crossentropy',
-    # 			  optimizer=optimizer,
-    # 			  metrics=['accuracy'])
-
     return model
 
 

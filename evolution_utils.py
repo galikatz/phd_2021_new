@@ -74,20 +74,36 @@ def create_evolution_analysis_per_task_per_equate_csv(generation,
 			   'Training_set_size',
 			   'Validation_set_size',
 			   'Validation_set_size_congruent',
-			   'Validation_Accuracy_Congruent','Validation_Accuracy_Incongruent',
-			   'Validation_Loss_Congruent','Validation_Loss_Incongruent',
-			   'Training_Accuracy_Congruent', 'Training_Accuracy_Incongruent',
-			   'Training_Loss_Congruent', 'Training_Loss_Incongruent',
-			   'Ratio 50 Congruent Validation Accuracy','Ratio 50 Congruent Validation Loss',
-			   'Ratio 50 Incongruent Validation Accuracy','Ratio 50 Incongruent Validation Loss',
-			   'Ratio 56 Congruent Validation Accuracy','Ratio 56 Congruent Validation Loss',
-			   'Ratio 56 Incongruent Validation Accuracy','Ratio 56 Incongruent Validation Loss',
-			   'Ratio 63 Congruent Validation Accuracy','Ratio 63 Congruent Validation Loss',
-			   'Ratio 63 Incongruent Validation Accuracy','Ratio 63 Incongruent Validation Loss',
-			   'Ratio 75 Congruent Validation Accuracy','Ratio 75 Congruent Validation Loss',
-			   'Ratio 75 Incongruent Validation Accuracy','Ratio 75 Incongruent Validation Loss',
-			   'Ratio 86 Congruent Validation Accuracy','Ratio 86 Congruent Validation Loss',
-			   'Ratio 86 Incongruent Validation Accuracy','Ratio 86 Incongruent Validation Loss']
+
+			   'Ratio 50 Congruent Validation Accuracy',
+			   'Ratio 50 Incongruent Validation Accuracy',
+			   'Ratio 50 Congruent Validation Loss',
+			   'Ratio 50 Incongruent Validation Loss',
+
+			   'Ratio 56 Congruent Validation Accuracy',
+			   'Ratio 56 Incongruent Validation Accuracy',
+			   'Ratio 56 Congruent Validation Loss',
+			   'Ratio 56 Incongruent Validation Loss',
+
+			   'Ratio 63 Congruent Validation Accuracy',
+			   'Ratio 63 Incongruent Validation Accuracy',
+			   'Ratio 63 Congruent Validation Loss',
+			   'Ratio 63 Incongruent Validation Loss',
+
+			   'Ratio 71 Congruent Validation Accuracy',
+			   'Ratio 71 Incongruent Validation Accuracy',
+			   'Ratio 71 Congruent Validation Loss',
+			   'Ratio 71 Incongruent Validation Loss',
+
+			   'Ratio 75 Congruent Validation Accuracy',
+			   'Ratio 75 Incongruent Validation Accuracy',
+			   'Ratio 75 Congruent Validation Loss',
+			   'Ratio 75 Incongruent Validation Loss',
+
+			   'Ratio 86 Congruent Validation Accuracy',
+			   'Ratio 86 Congruent Validation Loss',
+			   'Ratio 86 Incongruent Validation Accuracy',
+			   'Ratio 86 Incongruent Validation Loss']
 
 	for subject in range (0, population):
 
@@ -108,8 +124,8 @@ def create_evolution_analysis_per_task_per_equate_csv(generation,
 
 		for ratio in RATIOS:
 			row.append(round(ratios_dataset[ratio][0]["ratio_validation_accuracy_congruent"], 4))
-			row.append(round(ratios_dataset[ratio][1]["ratio_validation_loss_congruent"], 4)),
-			row.append(round(ratios_dataset[ratio][2]["ratio_validation_accuracy_incongruent"], 4)),
+			row.append(round(ratios_dataset[ratio][1]["ratio_validation_accuracy_incongruent"], 4)),
+			row.append(round(ratios_dataset[ratio][2]["ratio_validation_loss_congruent"], 4)),
 			row.append(round(ratios_dataset[ratio][3]["ratio_validation_loss_incongruent"], 4))
 
 		evolution_analysis_result.append(row)

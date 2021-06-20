@@ -163,7 +163,7 @@ def creating_train_test_data(dir, stimuli_type, mode, nb_classes):
 	for ratio in RATIOS:
 		ratio_cong_files = glob.glob(dir + os.sep + 'cong' + str(ratio) + '*.jpg')
 		ratio_incong_files = glob.glob(dir + os.sep + 'incong' + str(ratio) + '*.jpg')
-		logging.info("Got [ratio: %s cong files: %s] to train and [ratio: %s incong files: %s] to train" % (str(ratio), len(ratio_cong_files), str(ratio), len(ratio_incong_files)))
+		logging.info("Got ratio: %s cong files: %s to train and incong files: %s to train" % (str(ratio), len(ratio_cong_files), len(ratio_incong_files)))
 		(x_ratio_cong_train, x_ratio_cong_test, y_ratio_cong_train, y_ratio_cong_test) = classify_and_split_to_train_test(mode, ratio_cong_files, stimuli_type)
 		(x_ratio_incong_train, x_ratio_incong_test, y_ratio_incong_train, y_ratio_incong_test) = classify_and_split_to_train_test(mode, ratio_incong_files, stimuli_type)
 		x_ratio_cong_test, y_ratio_cong_test = create_balanced_incong_cong_train_test(x_ratio_cong_test, y_ratio_cong_test, [], [])

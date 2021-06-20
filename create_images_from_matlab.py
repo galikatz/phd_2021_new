@@ -2,7 +2,7 @@ import matlab.engine
 import argparse
 import fnmatch
 import os
-
+import logging
 
 def main(arguments):
 	eng = matlab.engine.start_matlab()
@@ -15,7 +15,15 @@ def main(arguments):
 def generate_new_images(congruency, equate, savedir, index, prefix=None, ratio=50):
 	eng = matlab.engine.start_matlab()
 	eng.addpath('/Users/gali.k/phd/Genereating_dot_arrays')
-	eng.pipeline_from_python(congruency, equate, savedir, str(index), ratio, nargout=0)
+	generating_stimuli = True
+	retries = 0
+	while generating_stimuli and retries < 3:
+		try:
+			eng.pipeline_from_python(congruency, equate, savedir, str(index), ratio, nargout=0)
+			generating_stimuli = False
+		except Exception as e:
+			logging.error("Timeout exception trying again for index: %s and ratio: %s" % (index, ratio))
+			retries += 1
 	eng.quit()
 	if prefix:
 		number_files_created = len(fnmatch.filter(os.listdir(savedir + "_" + str(index)), prefix +'*.jpg'))
