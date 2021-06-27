@@ -57,11 +57,12 @@ class TrainClassificationCache:
         self.y_cong_test = None
         self.x_incong_test = None
         self.y_incong_test = None
-        self.ratios_dataset = None
+        self.ratios_training_dataset = None
+        self.ratios_validation_dataset = None
         self.cache_is_empty = True
 
     def update_classification_cache(self, nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test,
-                                    x_cong_train, y_cong_train, x_incong_train, y_incong_train, x_cong_test, y_cong_test, x_incong_test, y_incong_test, ratios_dataset):
+                                    x_cong_train, y_cong_train, x_incong_train, y_incong_train, x_cong_test, y_cong_test, x_incong_test, y_incong_test, ratios_training_dataset, ratios_validation_dataset):
         self.nb_classes = nb_classes
         self.batch_size = batch_size
         self.input_shape = input_shape
@@ -78,7 +79,8 @@ class TrainClassificationCache:
         self.y_cong_train = y_cong_train
         self.x_incong_train = x_incong_train
         self.y_incong_train = y_incong_train
-        self.ratios_dataset = ratios_dataset
+        self.ratios_training_dataset = ratios_training_dataset
+        self.ratios_validation_dataset = ratios_validation_dataset
         self.cache_is_empty = False
 
 
@@ -200,7 +202,7 @@ def train_and_score(genome, dataset, mode, path, batch_size, epochs, debug_mode,
     nb_classes = 2
     if dataset == 'size_count':
         if not trainer_classification_cache.cache_is_empty:
-            x_train, y_train, x_test, y_test, x_cong_train, y_cong_train, x_incong_train, y_incong_train, x_cong_test, y_cong_test, x_incong_test, y_incong_test, ratios_dataset = trainer_classification_cache.x_train, \
+            x_train, y_train, x_test, y_test, x_cong_train, y_cong_train, x_incong_train, y_incong_train, x_cong_test, y_cong_test, x_incong_test, y_incong_test, ratios_training_dataset, ratios_validation_dataset = trainer_classification_cache.x_train, \
                                                                                                                                                             trainer_classification_cache.y_train, \
                                                                                                                                                             trainer_classification_cache.x_test, \
                                                                                                                                                             trainer_classification_cache.y_test, \
@@ -212,14 +214,15 @@ def train_and_score(genome, dataset, mode, path, batch_size, epochs, debug_mode,
                                                                                                                                                             trainer_classification_cache.y_cong_test, \
                                                                                                                                                             trainer_classification_cache.x_incong_test, \
                                                                                                                                                             trainer_classification_cache.y_incong_test, \
-                                                                                                                                                            trainer_classification_cache.ratios_dataset
+                                                                                                                                                            trainer_classification_cache.ratios_training_dataset, \
+                                                                                                                                                            trainer_classification_cache.ratios_validation_dataset
         else:
-            (x_train, y_train), (x_test, y_test), (x_cong_train, y_cong_train), (x_incong_train, y_incong_train), (x_cong_test, y_cong_test), (x_incong_test, y_incong_test), ratios_dataset= creating_train_test_data(
+            (x_train, y_train), (x_test, y_test), (x_cong_train, y_cong_train), (x_incong_train, y_incong_train), (x_cong_test, y_cong_test), (x_incong_test, y_incong_test), ratios_training_dataset, ratios_validation_dataset  = creating_train_test_data(
                 dir=path, stimuli_type="katzin", mode=mode, nb_classes=nb_classes)
             trainer_classification_cache.update_classification_cache(nb_classes, batch_size, input_shape, x_train,
                                                                      x_test, y_train, y_test, x_cong_train, y_cong_train,
                                                                      x_incong_train, y_incong_train, x_cong_test, y_cong_test,
-                                                                     x_incong_test, y_incong_test, ratios_dataset)
+                                                                     x_incong_test, y_incong_test, ratios_training_dataset, ratios_validation_dataset)
 
     if not model:
         logging.info("*********** Creating a new Keras model for individual %s ***********" % genome.u_ID)
@@ -278,20 +281,41 @@ def train_and_score(genome, dataset, mode, path, batch_size, epochs, debug_mode,
                                     "validation_loss_incongruent": validation_loss_incongruent}
 
     ratio_results = {}
-    for ratio in ratios_dataset:
-        cong_touple = ratios_dataset[ratio][0]
-        incong_touple = ratios_dataset[ratio][1]
-        x_ratio_cong_test = cong_touple[0]
-        y_ratio_cong_test = cong_touple[1]
-        x_ratio_incong_test = incong_touple[0]
-        y_ratio_incong_test = incong_touple[1]
-        score_ratio_congruent = model.evaluate(x=x_ratio_cong_test, y=y_ratio_cong_test, batch_size=batch_size, verbose=0)
-        score_ratio_incongruent = model.evaluate(x=x_ratio_incong_test, y=y_ratio_incong_test, batch_size=batch_size, verbose=0)
-        ratio_validation_accuracy_congruent = score_ratio_congruent[1]
-        ratio_validation_accuracy_incongruent = score_ratio_incongruent[1]
-        ratio_validation_loss_congruent = score_ratio_congruent[0]
-        ratio_validation_loss_incongruent = score_ratio_incongruent[0]
-        ratio_results.update({ratio: [{"ratio_validation_accuracy_congruent": ratio_validation_accuracy_congruent},
+    for ratio in ratios_validation_dataset:
+        training_cong_touple = ratios_validation_dataset[ratio][0]
+        training_incong_touple = ratios_validation_dataset[ratio][1]
+        x_ratio_cong_train = training_cong_touple[0]
+        y_ratio_cong_train = training_cong_touple[1]
+        x_ratio_incong_train = training_incong_touple[0]
+        y_ratio_incong_train = training_incong_touple[1]
+
+        validation_cong_touple = ratios_validation_dataset[ratio][0]
+        validation_incong_touple = ratios_validation_dataset[ratio][1]
+        x_ratio_cong_test = validation_cong_touple[0]
+        y_ratio_cong_test = validation_cong_touple[1]
+        x_ratio_incong_test = validation_incong_touple[0]
+        y_ratio_incong_test = validation_incong_touple[1]
+
+        training_score_ratio_congruent = model.evaluate(x=x_ratio_cong_train, y=y_ratio_cong_train, batch_size=batch_size, verbose=0)
+        training_score_ratio_incongruent = model.evaluate(x=x_ratio_incong_train, y=y_ratio_incong_train, batch_size=batch_size, verbose=0)
+
+        vaildation_score_ratio_congruent = model.evaluate(x=x_ratio_cong_test, y=y_ratio_cong_test, batch_size=batch_size, verbose=0)
+        vaildation_score_ratio_incongruent = model.evaluate(x=x_ratio_incong_test, y=y_ratio_incong_test, batch_size=batch_size, verbose=0)
+
+        ratio_training_accuracy_congruent = training_score_ratio_congruent[1]
+        ratio_training_accuracy_incongruent = training_score_ratio_incongruent[1]
+        ratio_training_loss_congruent = training_score_ratio_congruent[0]
+        ratio_training_loss_incongruent = training_score_ratio_incongruent[0]
+
+        ratio_validation_accuracy_congruent = vaildation_score_ratio_congruent[1]
+        ratio_validation_accuracy_incongruent = vaildation_score_ratio_incongruent[1]
+        ratio_validation_loss_congruent = vaildation_score_ratio_congruent[0]
+        ratio_validation_loss_incongruent = vaildation_score_ratio_incongruent[0]
+        ratio_results.update({ratio: [{"ratio_training_accuracy_congruent": ratio_training_accuracy_congruent},
+                                      {"ratio_training_accuracy_incongruent": ratio_training_accuracy_incongruent},
+                                      {"ratio_training_loss_congruent": ratio_training_loss_congruent},
+                                      {"ratio_training_loss_incongruent": ratio_training_loss_incongruent},
+                                      {"ratio_validation_accuracy_congruent": ratio_validation_accuracy_congruent},
                                       {"ratio_validation_accuracy_incongruent": ratio_validation_accuracy_incongruent},
                                       {"ratio_validation_loss_congruent": ratio_validation_loss_congruent},
                                       {"ratio_validation_loss_incongruent": ratio_validation_loss_incongruent}]})

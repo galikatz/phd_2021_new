@@ -159,22 +159,34 @@ def creating_train_test_data(dir, stimuli_type, mode, nb_classes):
 	y_cong_test = to_categorical(y_cong_test, nb_classes)
 	y_incong_test = to_categorical(y_incong_test, nb_classes)
 
-	ratios_dataset = {}
+	ratios_training_dataset = {}
+	ratios_validation_dataset = {}
 	for ratio in RATIOS:
 		ratio_cong_files = glob.glob(dir + os.sep + 'cong' + str(ratio) + '*.jpg')
 		ratio_incong_files = glob.glob(dir + os.sep + 'incong' + str(ratio) + '*.jpg')
 		logging.info("Got ratio: %s cong files: %s to train and incong files: %s to train" % (str(ratio), len(ratio_cong_files), len(ratio_incong_files)))
 		(x_ratio_cong_train, x_ratio_cong_test, y_ratio_cong_train, y_ratio_cong_test) = classify_and_split_to_train_test(mode, ratio_cong_files, stimuli_type)
 		(x_ratio_incong_train, x_ratio_incong_test, y_ratio_incong_train, y_ratio_incong_test) = classify_and_split_to_train_test(mode, ratio_incong_files, stimuli_type)
+
+
+		x_ratio_cong_train, y_ratio_cong_train = create_balanced_incong_cong_train_test(x_ratio_cong_train, y_ratio_cong_train, [], [])
+		x_ratio_incong_train, y_ratio_incong_train = create_balanced_incong_cong_train_test([], [], x_ratio_incong_train, y_ratio_incong_train)
+
 		x_ratio_cong_test, y_ratio_cong_test = create_balanced_incong_cong_train_test(x_ratio_cong_test, y_ratio_cong_test, [], [])
 		x_ratio_incong_test, y_ratio_incong_test = create_balanced_incong_cong_train_test([], [], x_ratio_incong_test, y_ratio_incong_test)
+
+		# Fix Y-label values
+		y_ratio_cong_train = to_categorical(y_ratio_cong_train, nb_classes)
+		y_ratio_incong_train = to_categorical(y_ratio_incong_train, nb_classes)
 
 		y_ratio_cong_test = to_categorical(y_ratio_cong_test, nb_classes)
 		y_ratio_incong_test = to_categorical(y_ratio_incong_test, nb_classes)
 
-		ratios_dataset.update({ratio: [(x_ratio_cong_test, y_ratio_cong_test), (x_ratio_incong_test, y_ratio_incong_test)]})
+		ratios_training_dataset.update({ratio: [(x_ratio_cong_train, y_ratio_cong_train), (x_ratio_incong_train, y_ratio_incong_train)]})
 
-	return (x_train, y_train), (x_test, y_test), (x_cong_train, y_cong_train), (x_incong_train, y_incong_train), (x_cong_test, y_cong_test), (x_incong_test, y_incong_test), ratios_dataset
+		ratios_validation_dataset.update({ratio: [(x_ratio_cong_test, y_ratio_cong_test), (x_ratio_incong_test, y_ratio_incong_test)]})
+
+	return (x_train, y_train), (x_test, y_test), (x_cong_train, y_cong_train), (x_incong_train, y_incong_train), (x_cong_test, y_cong_test), (x_incong_test, y_incong_test), ratios_training_dataset, ratios_validation_dataset
 
 
 def create_balanced_incong_cong_train_test(x_incong_stimuli, y_incong_labels, x_cong_stimuli, y_cong_labels):

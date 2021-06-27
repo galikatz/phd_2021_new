@@ -18,6 +18,7 @@ from train import refresh_classification_cache
 from evolution_utils import create_evolution_analysis_per_task_per_equate_csv, concat_dataframes_into_raw_data_csv_cross_generations, DataAllSubjects
 import glob
 from evolution_utils import RATIOS
+from datetime import datetime
 import sys
 
 MIN_DIFF = 100
@@ -151,6 +152,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 
 		if (mode != "size-count" and mode != "random-count") and avg_accuracy >= stopping_th:
 			logging.info("Done training! average_accuracy is %s" % str(avg_accuracy))
+			dataframe_list_of_results.append(accumulate_data(i, population, data_from_all_subjects, mode, equate, training_set_size, validation_set_size, validation_set_size_congruent))
 			break
 
 		if mode == "size-count" or mode == "random-count":  # this is for the first time before the switch
@@ -158,6 +160,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 				if avg_accuracy >= stopping_th:
 					if already_switched:
 						logging.info("Done training! average_accuracy is %s" % str(avg_accuracy))
+						dataframe_list_of_results.append(accumulate_data(i, population, data_from_all_subjects, mode, equate, training_set_size, validation_set_size, validation_set_size_congruent))
 						break
 
 				if not already_switched:
@@ -183,15 +186,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 			genomes = evolver.evolve(genomes)
 
 		# create data for analysis per generation
-		df_per_gen = create_evolution_analysis_per_task_per_equate_csv(i,
-																	   population,
-																	   data_from_all_subjects,
-																	   mode,
-																	   equate,
-																	   training_set_size,
-																	   validation_set_size,
-																	   validation_set_size_congruent)
-		dataframe_list_of_results.append(df_per_gen)
+		dataframe_list_of_results.append(accumulate_data(i, population, data_from_all_subjects, mode, equate, training_set_size, validation_set_size, validation_set_size_congruent))
 
 	logging.info("************ End of generations loop - evolution is over, avg accuracy: %.2f%%, best accuracy: %.2f%% and loss: %.2f%% **************" % (avg_accuracy * 100, best_accuracy * 100, best_loss))
 	# Sort our final population according to performance.
@@ -204,7 +199,20 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	# creating result csvs:
 	logging.info("Creating results csvs")
 	total_time = (time.time() - start_time) / 60
-	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, "Results_[Generations:%s_Population:_%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes].csv" % (str(generations), str(population), str(epochs), avg_accuracy, str(total_time)))
+	now_str = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
+	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, "Results_%s_[Generations:%s_Population:_%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes].csv" % (now_str, str(i), str(population), str(epochs), avg_accuracy, str(total_time)))
+
+
+def accumulate_data(curr_gen, population, data_from_all_subjects, mode, equate, training_set_size, validation_set_size, validation_set_size_congruent):
+	df_per_gen = create_evolution_analysis_per_task_per_equate_csv(curr_gen,
+																   population,
+																   data_from_all_subjects,
+																   mode,
+																   equate,
+																   training_set_size,
+																   validation_set_size,
+																   validation_set_size_congruent)
+	return df_per_gen
 
 
 def creating_images_for_current_generation(images_dir_per_gen, images_dir, i, should_delete_stimuli, congruency, equate, savedir, actual_mode, generations):
