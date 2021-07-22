@@ -4,8 +4,8 @@ import random
 import logging
 import hashlib
 import copy
-import matplotlib
-matplotlib.use('TkAgg')
+# import matplotlib
+# matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from keras.utils.vis_utils import plot_model
 import numpy as np
