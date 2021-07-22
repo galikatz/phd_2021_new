@@ -7,11 +7,12 @@ and also on
 	https://github.com/fchollet/keras/blob/master/examples/mnist_cnn.py
 
 """
+import matplotlib
+matplotlib.use('TKAgg')
+import matplotlib.pyplot as plt
 
-import random
 import glob
-import cv2
-from imutils import paths
+
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.callbacks import EarlyStopping, Callback
@@ -19,21 +20,12 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras import losses
 from keras import backend as K
 import numpy as np
-import pandas as pd
-from keras.preprocessing.image import img_to_array
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, confusion_matrix
 import os
 import logging
-import matplotlib
-import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
-from keras.utils.vis_utils import plot_model
 from evolution_utils import DataPerSubject
 from classify import creating_train_test_data, IMG_SIZE
-
-matplotlib.use('TkAgg')
 
 # Helper: Early stopping.
 early_stopper = EarlyStopping(monitor='val_loss', min_delta=0.1, patience=2, verbose=0, mode='auto')
