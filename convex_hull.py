@@ -1,7 +1,7 @@
 from scipy.spatial import ConvexHull, convex_hull_plot_2d
 import numpy as np
 import matplotlib
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 

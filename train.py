@@ -8,7 +8,7 @@ and also on
 
 """
 import matplotlib
-matplotlib.use('TKAgg')
+#matplotlib.use('TKAgg')
 import matplotlib.pyplot as plt
 
 import glob

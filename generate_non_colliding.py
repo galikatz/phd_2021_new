@@ -1,6 +1,6 @@
 import random
 import matplotlib
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 import numpy
