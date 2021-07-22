@@ -10,6 +10,8 @@ import argparse
 import os
 import pandas as pd
 import seaborn as sns
+import matplotlib
+matplotlib.use('TKAgg')
 import matplotlib.pyplot as plt
 from create_images_from_matlab import generate_new_images
 import shutil
