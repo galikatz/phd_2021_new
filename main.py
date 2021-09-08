@@ -108,7 +108,7 @@ def get_best_genome(genomes):
 
 def generate(generations, generation_index, population, all_possible_genes, dataset, mode, mode_th, images_dir,
 			 stopping_th, batch_size, epochs, debug_mode, congruency, equate, savedir, already_switched,
-			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=False):
+			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=False, running_on_cloud=False):
 	"""Generate a network with the genetic algorithm.
 
 	Args:
@@ -143,8 +143,8 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	for i in range(generation_index, generations + 1):
 		### Every new generation we create new stimuli ###
 		images_dir_per_gen = images_dir + "_" + str(i)
-
-		creating_images_for_current_generation(images_dir_per_gen, images_dir, i, should_delete_stimuli, congruency, equate, savedir, actual_mode, generations)
+		if not running_on_cloud:
+			creating_images_for_current_generation(images_dir_per_gen, images_dir, i, should_delete_stimuli, congruency, equate, savedir, actual_mode, generations)
 
 		print_genomes(genomes)
 
@@ -447,7 +447,8 @@ def main(args):
 
 	generate(generations=generations, generation_index=1, population=population, all_possible_genes=all_possible_genes, dataset=dataset,
 			 mode=args.mode, mode_th=args.mode_th, images_dir=args.images_dir, stopping_th=args.stopping_th, batch_size=args.batch_size, epochs=args.epochs, debug_mode=args.debug, congruency=args.congruency,
-			 equate=args.equate, savedir=args.savedir, already_switched=False, genomes = None, evolver = None, individual_models = None, should_delete_stimuli = args.should_delete_stimuli)
+			 equate=args.equate, savedir=args.savedir, already_switched=False,
+			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=args.should_delete_stimuli, running_on_cloud=args.running_on_cloud)
 
 def str2bool(value):
 	"""Convert string to bool (in argparse context)."""
@@ -473,6 +474,8 @@ if __name__ == '__main__':
 	parser.add_argument('--savedir', dest='savedir', type=str, required=True, help='The save dir')
 	parser.add_argument('--should_delete_stimuli', dest='should_delete_stimuli', type=str2bool, required=False, default=False, help='should delete old generations stimuli images dir')
 	parser.add_argument('--batch_size', dest='batch_size', type=int, required=True, help='The batch_size')
+	parser.add_argument('--running_on_cloud', dest='running_on_cloud', type=str2bool, required=False, help='Running on cloud GPU or not', default=False)
+
 	args = parser.parse_args()
 	main(args)
 
