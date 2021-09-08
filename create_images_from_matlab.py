@@ -1,10 +1,13 @@
-import matlab.engine
+
 import argparse
 import fnmatch
 import os
 import logging
 
+
 def main(arguments):
+	# This is here because on cloud mode we do not want to import this
+	import matlab.engine
 	eng = matlab.engine.start_matlab()
 	eng.addpath('/Users/gali.k/phd/Genereating_dot_arrays')
 	eng.pipeline_from_python(arguments.congruency, arguments.equate, arguments.savedir, str(arguments.index), nargout=0)
@@ -13,6 +16,8 @@ def main(arguments):
 
 
 def generate_new_images(congruency, equate, savedir, index, prefix=None, ratio=50):
+	# This is here because on cloud mode we do not want to import this
+	import matlab.engine
 	eng = matlab.engine.start_matlab()
 	eng.addpath('/Users/gali.k/phd/Genereating_dot_arrays')
 	generating_stimuli = True
@@ -30,7 +35,6 @@ def generate_new_images(congruency, equate, savedir, index, prefix=None, ratio=5
 	else:
 		number_files_created = len(fnmatch.filter(os.listdir(savedir + "_" + str(index)), '*.jpg'))
 	return number_files_created
-
 
 
 if __name__ == '__main__':
