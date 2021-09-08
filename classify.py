@@ -137,7 +137,7 @@ def creating_train_test_data(dir, stimuli_type, mode, nb_classes):
 
 	incong_files = glob.glob(dir + os.sep + 'incong*.jpg')
 	cong_files = glob.glob(dir + os.sep + 'cong*.jpg')
-	logging.info("Got %s incong and %s cong files to train " % (len(incong_files), len(cong_files)))
+	logging.info("Got %s incong and %s cong files to train from path %s" % (len(incong_files), len(cong_files), dir))
 	# this is for the first time basically
 	(x_incong_train, x_incong_test, y_incong_train, y_incong_test) = classify_and_split_to_train_test(mode, incong_files, stimuli_type)
 	(x_cong_train, x_cong_test, y_cong_train, y_cong_test) = classify_and_split_to_train_test(mode, cong_files, stimuli_type)

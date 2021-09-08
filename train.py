@@ -209,7 +209,7 @@ def train_and_score(genome, dataset, mode, path, batch_size, epochs, debug_mode,
                                                                                                                                                             trainer_classification_cache.ratios_training_dataset, \
                                                                                                                                                             trainer_classification_cache.ratios_validation_dataset
         else:
-            (x_train, y_train), (x_test, y_test), (x_cong_train, y_cong_train), (x_incong_train, y_incong_train), (x_cong_test, y_cong_test), (x_incong_test, y_incong_test), ratios_training_dataset, ratios_validation_dataset  = creating_train_test_data(
+            (x_train, y_train), (x_test, y_test), (x_cong_train, y_cong_train), (x_incong_train, y_incong_train), (x_cong_test, y_cong_test), (x_incong_test, y_incong_test), ratios_training_dataset, ratios_validation_dataset = creating_train_test_data(
                 dir=path, stimuli_type="katzin", mode=mode, nb_classes=nb_classes)
             trainer_classification_cache.update_classification_cache(nb_classes, batch_size, input_shape, x_train,
                                                                      x_test, y_train, y_test, x_cong_train, y_cong_train,
