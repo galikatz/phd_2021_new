@@ -22,7 +22,7 @@ def generate_new_images(congruency, equate, savedir, index, prefix=None, ratio=5
 	eng.addpath('/Users/gali.k/phd/Genereating_dot_arrays')
 	generating_stimuli = True
 	retries = 0
-	while generating_stimuli and retries < 3:
+	while generating_stimuli and retries < 5:
 		try:
 			eng.pipeline_from_python(congruency, equate, savedir, str(index), ratio, nargout=0)
 			generating_stimuli = False

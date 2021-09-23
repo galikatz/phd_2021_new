@@ -202,7 +202,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	logging.info("Creating results csvs")
 	total_time = (time.time() - start_time) / 60
 	now_str = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
-	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, "Results_%s_[Generations:%s_Population:_%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes].csv" % (now_str, str(i), str(population), str(epochs), avg_accuracy, str(total_time)))
+	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, "Results_%s_[Generations:%s_Population:_%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes].csv" % (now_str, str(i), str(population), str(epochs), avg_accuracy, str(round(total_time, 3))))
 
 
 def accumulate_data(curr_gen, population, data_from_all_subjects, mode, equate, training_set_size, validation_set_size, validation_set_size_congruent):

@@ -422,8 +422,7 @@ def main(args):
 	population = args.population # Number of networks/genomes in each generation.
 	#we only need to train the new ones....
 
-	ds = args.ds
-	if (ds==5):
+	if (args.ds == 5):
 		dataset = 'size_count'
 		#analyze_data(args.images_dir, args.analysis_path)
 	else:
@@ -453,7 +452,7 @@ def main(args):
 	# 6th value reserved for dense layer
 	nb_neurons = all_possible_genes['nb_neurons']
 	for i in range(1, len(nb_neurons)+1):
-	  all_possible_genes['nb_neurons_' + str(i)] = nb_neurons
+		all_possible_genes['nb_neurons_' + str(i)] = nb_neurons
 	# remove old value from dict
 	all_possible_genes.pop('nb_neurons')
 
@@ -491,7 +490,7 @@ if __name__ == '__main__':
 	parser.add_argument('--savedir', dest='savedir', type=str, required=True, help='The save dir')
 	parser.add_argument('--should_delete_stimuli', dest='should_delete_stimuli', type=str2bool, required=False, default=False, help='should delete old generations stimuli images dir')
 	parser.add_argument('--batch_size', dest='batch_size', type=int, required=True, help='The batch_size')
-	parser.add_argument('--running_on_cloud', dest='running_on_cloud', type=str2bool, required=False, help='Running on cloud GPU or not', default=False)
+	parser.add_argument('--running_on_cloud', dest='running_on_cloud', type=str2bool, required=False, help='Running on cloud GPU/TPU/CPU or not', default=False)
 
 	args = parser.parse_args()
 	main(args)
