@@ -204,7 +204,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	logging.info("Creating results csvs")
 	total_time = (time.time() - start_time) / 60
 	now_str = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
-	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, "Results_%s_[Mode_%s_Generations:%s_Population:_%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes].csv" % (mode, now_str, str(i), str(population), str(epochs), avg_accuracy, str(round(total_time, 3))))
+	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, "Results_%s_[Mode:_%s_Generations:%s_Population:_%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes].csv" % (now_str, mode, str(i), str(population), str(epochs), avg_accuracy, str(round(total_time, 3))))
 
 
 def accumulate_data(curr_gen, population, data_from_all_subjects, mode, equate, training_set_size, validation_set_size, validation_set_size_congruent):
@@ -459,7 +459,8 @@ def main(args):
 	print("*** Evolving for %d generations with population size = %d ***" % (generations, population))
 	batch_size = args.batch_size
 	if tpu_strategy is not None:
-		batch_size = batch_size * tpu_strategy.num_replicas_in_sync
+		batch_size = 8 * tpu_strategy.num_replicas_in_sync
+		logging.info("*** Batch size is ***" % batch_size)
 
 	generate(generations=generations, generation_index=1, population=population, all_possible_genes=all_possible_genes, dataset=dataset,
 			 mode=args.mode, mode_th=args.mode_th, images_dir=args.images_dir, stopping_th=args.stopping_th, batch_size=batch_size, epochs=args.epochs, debug_mode=args.debug, congruency=args.congruency,

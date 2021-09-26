@@ -323,7 +323,11 @@ def train_and_score(genome, dataset, mode, path, batch_size, epochs, debug_mode,
                                       validation_loss,
                                       training_congruency_result,
                                       validation_congruency_result,
-                                      ratio_results)
+                                      ratio_results,
+                                      genome.geneparam['nb_layers'],
+                                      genome.nb_neurons(),
+                                      genome.geneparam['activation'],
+                                      genome.geneparam['optimizer'])
 
     training_set_size = len(x_train)
     validation_set_size = len(x_test)
@@ -370,19 +374,27 @@ def train_and_score(genome, dataset, mode, path, batch_size, epochs, debug_mode,
         for f in glob.glob(old_models_path):
             os.remove(f)
 
-        with open("models/best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}.json".format(date, mode_name,
+        with open("models/best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}_layers_{}_neurons_{}_activation_{}_optimizer_{}.json".format(date, mode_name,
                                                                                                  genome.generation,
                                                                                                  genome.u_ID,
                                                                                                  max_val_accuracy,
-                                                                                                 min_val_loss),
+                                                                                                 min_val_loss,
+                                                                                                 genome.geneparam['nb_layers'],
+                                                                                                 genome.nb_neurons(),
+                                                                                                 genome.geneparam['activation'],
+                                                                                                 genome.geneparam['optimizer']),
                   "w") as json_file:
             json_file.write(model_json)
         # serialize weights to HDF5
-        file_name = "models/best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}".format(date, mode_name,
+        file_name = "models/best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}_layers_{}_neurons_{}_activation_{}_optimizer_{}".format(date, mode_name,
                                                                                               genome.generation,
                                                                                               genome.u_ID,
                                                                                               max_val_accuracy,
-                                                                                              min_val_loss)
+                                                                                              min_val_loss,
+                                                                                              genome.geneparam['nb_layers'],
+                                                                                              genome.nb_neurons(),
+                                                                                              genome.geneparam['activation'],
+                                                                                              genome.geneparam['optimizer'])
         model.save(file_name + ".h5")
         if debug_mode:
             # this is the list of all the epochs scores of the current generation - for plotting

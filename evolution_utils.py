@@ -14,7 +14,12 @@ class DataPerSubject:
 				 validation_loss,
 				 training_congruency_result,
 				 validation_congruency_result,
-				 ratio_results):
+				 ratio_results,
+				 nb_layers,
+				 nb_neurons,
+				 activation,
+				 optimizer
+	):
 		self.subject_uid = subject_uid
 		self.training_accuracy = round(training_accuracy, 4)
 		self.validation_accuracy = round(validation_accuracy, 4)
@@ -23,6 +28,10 @@ class DataPerSubject:
 		self.training_congruency_result = training_congruency_result
 		self.validation_congruency_result = validation_congruency_result
 		self.ratio_results = ratio_results
+		self.nb_layers = nb_layers
+		self.nb_neurons = nb_neurons
+		self.activation = activation
+		self.optimizer = optimizer
 
 
 class DataAllSubjects:
@@ -35,6 +44,10 @@ class DataAllSubjects:
 		self.training_congruency_result = []
 		self.validation_congruency_result = []
 		self.ratio_results = []
+		self.nb_layers = []
+		self.nb_neurons = []
+		self.activation = []
+		self.optimizer = []
 
 		for dataPerSubject in dataPerSubjectList:
 			self.subjects_uids.append(dataPerSubject.subject_uid)
@@ -50,6 +63,12 @@ class DataAllSubjects:
 
 			# ratio data
 			self.ratio_results.append(dataPerSubject.ratio_results)
+
+			# chosen architecture params
+			self.nb_layers.append(dataPerSubject.nb_layers)
+			self.nb_neurons.append(dataPerSubject.nb_neurons)
+			self.activation.append(dataPerSubject.activation)
+			self.optimizer.append(dataPerSubject.optimizer)
 
 
 def create_evolution_analysis_per_task_per_equate_csv(generation,
@@ -133,7 +152,12 @@ def create_evolution_analysis_per_task_per_equate_csv(generation,
 			   'Ratio 86 Congruent Validation Accuracy',
 			   'Ratio 86 Congruent Validation Loss',
 			   'Ratio 86 Incongruent Validation Accuracy',
-			   'Ratio 86 Incongruent Validation Loss']
+			   'Ratio 86 Incongruent Validation Loss',
+
+			   'Layers',
+			   'Nuerons',
+			   'Activation',
+			   'Optimizer']
 
 	for subject in range (0, population):
 
@@ -163,9 +187,15 @@ def create_evolution_analysis_per_task_per_equate_csv(generation,
 			row.append(round(ratios_dataset[ratio][6]["ratio_validation_loss_congruent"], 4)),
 			row.append(round(ratios_dataset[ratio][7]["ratio_validation_loss_incongruent"], 4))
 
+		row.append(data_from_all_subjects.nb_layers[subject])
+		row.append(data_from_all_subjects.nb_neurons[subject])
+		row.append(data_from_all_subjects.activation[subject])
+		row.append(data_from_all_subjects.optimizer[subject])
+
 		evolution_analysis_result.append(row)
 
-	df = pd.DataFrame(data=np.array(evolution_analysis_result), columns=headers)
+
+	df = pd.DataFrame(data=np.array(evolution_analysis_result, dtype=object), columns=headers)
 
 	return df
 
