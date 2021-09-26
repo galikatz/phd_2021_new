@@ -460,7 +460,10 @@ def main(args):
 	batch_size = args.batch_size
 	if tpu_strategy is not None:
 		batch_size = 8 * tpu_strategy.num_replicas_in_sync
-		logging.info("*** Batch size is ***" % batch_size)
+		logging.info("*** According to TPU strategy Batch size is %s ***" % batch_size)
+		if args.mode == 'count': # smaller batch because of OOM
+			batch_size = 16
+			logging.info("*** Batch size was fixed for mode: %s to: %s ***" % (args.mode, batch_size))
 
 	generate(generations=generations, generation_index=1, population=population, all_possible_genes=all_possible_genes, dataset=dataset,
 			 mode=args.mode, mode_th=args.mode_th, images_dir=args.images_dir, stopping_th=args.stopping_th, batch_size=batch_size, epochs=args.epochs, debug_mode=args.debug, congruency=args.congruency,
