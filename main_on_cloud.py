@@ -15,7 +15,8 @@ from create_images_from_matlab import generate_new_images
 import shutil
 from sklearn.utils import shuffle
 from train import refresh_classification_cache
-from evolution_utils import create_evolution_analysis_per_task_per_equate_csv, concat_dataframes_into_raw_data_csv_cross_generations, DataAllSubjects
+from evolution_utils import create_evolution_analysis_per_task_per_equate_csv, \
+	concat_dataframes_into_raw_data_csv_cross_generations, DataAllSubjects
 import glob
 from evolution_utils import RATIOS
 from datetime import datetime
@@ -33,7 +34,7 @@ logging.basicConfig(
 def train_genomes(genomes, individuals_models, dataset, mode, path, batch_size, epochs, debug_mode, training_strategy):
 	logging.info("*** Going to train %s individuals ***" % len(genomes))
 	pop_size = len(genomes)
-	#progress bar
+	# progress bar
 	pbar = tqdm(total=pop_size)
 	individual_index = 1
 	best_individual_acc = 0.0
@@ -41,29 +42,33 @@ def train_genomes(genomes, individuals_models, dataset, mode, path, batch_size, 
 	sum_individual_acc = 0
 
 	################## loop over all individuals ##################
-	#refresh classify cache
-	logging.info("####################### Refreshing classification cache, once in a generation #######################")
+	# refresh classify cache
+	logging.info(
+		"####################### Refreshing classification cache, once in a generation #######################")
 	trainer_classification_cache = refresh_classification_cache()
 	data_per_subject_list = []
 	for genome in genomes:
 		logging.info("*** Training individual #%s ***" % individual_index)
 		if genome not in individuals_models:
-			logging.info("*** Individual #%s is not in individuals_models, probably after evolution - new offspring ***" % individual_index)
-			curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(dataset, mode, path, batch_size, epochs,
-																							debug_mode,
-																							best_individual_acc,
-																							None,
-																							trainer_classification_cache,
-																							training_strategy)
+			logging.info(
+				"*** Individual #%s is not in individuals_models, probably after evolution - new offspring ***" % individual_index)
+			curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(
+				dataset, mode, path, batch_size, epochs,
+				debug_mode,
+				best_individual_acc,
+				None,
+				trainer_classification_cache,
+				training_strategy)
 
 		else:
 			logging.info("*** Individual #%s already in individuals_models ***" % individual_index)
-			curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(dataset, mode, path, batch_size, epochs,
-																							debug_mode,
-																							best_individual_acc,
-																							individuals_models[genome],
-																							trainer_classification_cache,
-																							training_strategy)
+			curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(
+				dataset, mode, path, batch_size, epochs,
+				debug_mode,
+				best_individual_acc,
+				individuals_models[genome],
+				trainer_classification_cache,
+				training_strategy)
 		sum_individual_acc += curr_individual_acc
 
 		individuals_models.update({genome: curr_individual_model})
@@ -95,20 +100,21 @@ def get_best_genome(genomes):
 	:param genomes:
 	:return: the accuracy score
 	"""
-	genomes_dict={}
+	genomes_dict = {}
 	max_accuracy = 0.0
 	for genome in genomes:
 		genomes_dict.update({genome.accuracy: genome})
 		max_accuracy = max(max_accuracy, genome.accuracy)
 
 	best_genome = genomes_dict.get(max_accuracy)
-	logging.info("best genome has %f accuracy "%(best_genome.accuracy))
+	logging.info("best genome has %f accuracy " % (best_genome.accuracy))
 	return best_genome
 
 
 def generate(generations, generation_index, population, all_possible_genes, dataset, mode, mode_th, images_dir,
 			 stopping_th, batch_size, epochs, debug_mode, congruency, equate, savedir, already_switched,
-			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=False, running_on_cloud=False, training_strategy=None):
+			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=False, running_on_cloud=False,
+			 training_strategy=None):
 	"""Generate a network with the genetic algorithm.
 
 	Args:
@@ -118,7 +124,9 @@ def generate(generations, generation_index, population, all_possible_genes, data
 		dataset (str): Dataset to use for training/evaluating
 
 	"""
-	logging.info("*** Configuration: mode={}, mode_th={}, generations={}, population={}, batch_size={}.epochs={}, stopping_th={})***".format(mode, mode_th, generations, population, batch_size, epochs, stopping_th))
+	logging.info(
+		"*** Configuration: mode={}, mode_th={}, generations={}, population={}, batch_size={}.epochs={}, stopping_th={})***".format(
+			mode, mode_th, generations, population, batch_size, epochs, stopping_th))
 
 	if not genomes:
 		evolver = Evolver(all_possible_genes)
@@ -126,11 +134,11 @@ def generate(generations, generation_index, population, all_possible_genes, data
 		if not individual_models:
 			individual_models = {}
 		for genome in genomes:
-			individual_models.update( {genome : None} )
+			individual_models.update({genome: None})
 
 	# Evolve the generation.
 	if mode == 'size-count':
-		actual_mode = 'size' #we start with size, than switch to counting
+		actual_mode = 'size'  # we start with size, than switch to counting
 	elif mode == 'random-count':
 		actual_mode = 'random'
 	else:
@@ -138,24 +146,28 @@ def generate(generations, generation_index, population, all_possible_genes, data
 
 	dataframe_list_of_results = []
 
-
 	################ loop over generations ######################
 	start_time = time.time()
 	for i in range(generation_index, generations + 1):
 		### Every new generation we create new stimuli ###
 		images_dir_per_gen = images_dir + "_" + str(i)
 		if not running_on_cloud:
-			creating_images_for_current_generation(images_dir_per_gen, images_dir, i, should_delete_stimuli, congruency, equate, savedir, actual_mode, generations)
+			creating_images_for_current_generation(images_dir_per_gen, images_dir, i, should_delete_stimuli, congruency,
+			equate, savedir, actual_mode, generations)
 
 		print_genomes(genomes)
 
 		# Train and Get the best accuracy for this generation from all individuals.
 		# if there is no model existing for this genome it will create one.
-		best_accuracy, best_loss, individuals_models, avg_accuracy,	data_from_all_subjects,  training_set_size, validation_set_size, validation_set_size_congruent = train_genomes(genomes, individual_models, dataset, actual_mode, images_dir_per_gen, batch_size, epochs, debug_mode, training_strategy)
+		best_accuracy, best_loss, individuals_models, avg_accuracy, data_from_all_subjects, training_set_size, validation_set_size, validation_set_size_congruent = train_genomes(
+			genomes, individual_models, dataset, actual_mode, images_dir_per_gen, batch_size, epochs, debug_mode,
+			training_strategy)
 
 		if (mode != "size-count" and mode != "random-count") and avg_accuracy >= stopping_th:
 			logging.info("Done training! average_accuracy is %s" % str(avg_accuracy))
-			dataframe_list_of_results.append(accumulate_data(i, population, data_from_all_subjects, mode, equate, training_set_size, validation_set_size, validation_set_size_congruent))
+			dataframe_list_of_results.append(
+				accumulate_data(i, population, data_from_all_subjects, mode, equate, training_set_size,
+								validation_set_size, validation_set_size_congruent))
 			break
 
 		if mode == "size-count" or mode == "random-count":  # this is for the first time before the switch
@@ -163,11 +175,14 @@ def generate(generations, generation_index, population, all_possible_genes, data
 				if avg_accuracy >= stopping_th:
 					if already_switched:
 						logging.info("Done training! average_accuracy is %s" % str(avg_accuracy))
-						dataframe_list_of_results.append(accumulate_data(i, population, data_from_all_subjects, mode, equate, training_set_size, validation_set_size, validation_set_size_congruent))
+						dataframe_list_of_results.append(
+							accumulate_data(i, population, data_from_all_subjects, mode, equate, training_set_size,
+											validation_set_size, validation_set_size_congruent))
 						break
 
 				if not already_switched:
-					logging.info('********** SWITCHING TO COUNTING, STILL IN GENERATION %s, ACCURACY: %s **********' % (str(i), str(best_accuracy)))
+					logging.info('********** SWITCHING TO COUNTING, STILL IN GENERATION %s, ACCURACY: %s **********' % (
+						str(i), str(best_accuracy)))
 					actual_mode = 'count'
 
 					# we have to reset the accuracy before training a new task.
@@ -177,11 +192,13 @@ def generate(generations, generation_index, population, all_possible_genes, data
 					already_switched = True
 
 				# now train again, this time for counting:
-				best_accuracy, best_loss, individuals_models, avg_accuracy, training_set_size, validation_set_size, validation_set_size_congruent = train_genomes(genomes, individual_models, dataset, actual_mode, images_dir_per_gen, batch_size, epochs, debug_mode, training_strategy)
+				best_accuracy, best_loss, individuals_models, avg_accuracy, training_set_size, validation_set_size, validation_set_size_congruent = train_genomes(
+					genomes, individual_models, dataset, actual_mode, images_dir_per_gen, batch_size, epochs,
+					debug_mode, training_strategy)
 		# Print out the average accuracy each generation.
 		logging.info("Generation avg accuracy: %.2f%%" % (avg_accuracy * 100))
 		logging.info("Generation best accuracy: %.2f%% and loss: %.2f%%" % (best_accuracy * 100, best_loss))
-		logging.info('-'*80) #-----------
+		logging.info('-' * 80)  # -----------
 
 		# Evolve, except on the last iteration.
 		if i != generations:
@@ -189,9 +206,13 @@ def generate(generations, generation_index, population, all_possible_genes, data
 			genomes = evolver.evolve(genomes)
 
 		# create data for analysis per generation
-		dataframe_list_of_results.append(accumulate_data(i, population, data_from_all_subjects, mode, equate, training_set_size, validation_set_size, validation_set_size_congruent))
+		dataframe_list_of_results.append(
+			accumulate_data(i, population, data_from_all_subjects, mode, equate, training_set_size, validation_set_size,
+							validation_set_size_congruent))
 
-	logging.info("************ End of generations loop - evolution is over, avg accuracy: %.2f%%, best accuracy: %.2f%% and loss: %.2f%% **************" % (avg_accuracy * 100, best_accuracy * 100, best_loss))
+	logging.info(
+		"************ End of generations loop - evolution is over, avg accuracy: %.2f%%, best accuracy: %.2f%% and loss: %.2f%% **************" % (
+			avg_accuracy * 100, best_accuracy * 100, best_loss))
 	# Sort our final population according to performance.
 	genomes = sorted(genomes, key=lambda x: x.accuracy, reverse=True)
 
@@ -203,16 +224,14 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	logging.info("Creating results csvs")
 	total_time = (time.time() - start_time) / 60
 	now_str = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
-	dirname = "Results_%s_Mode:_%s_Generations:%s_Population:_%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes"
-	dirname = dirname % (now_str, mode, str(i), str(population), str(epochs), avg_accuracy, str(round(total_time, 3)))
-	dirname = dirname.replace(":", "_")
-	os.mkdir(dirname)
-	filename = dirname + ".csv"
-	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, dirname, filename)
+	filename = "Results_%s_Mode:_%s_Generations:%s_Population:_%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes" % (now_str, mode, str(i), str(population), str(epochs), avg_accuracy, str(round(total_time, 3)))
+	filename = filename.replace(":", "_") + ".csv"
+	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, filename)
 	logging.info(f"Done training! took {total_time} minutes.")
 
 
-def accumulate_data(curr_gen, population, data_from_all_subjects, mode, equate, training_set_size, validation_set_size, validation_set_size_congruent):
+def accumulate_data(curr_gen, population, data_from_all_subjects, mode, equate, training_set_size, validation_set_size,
+					validation_set_size_congruent):
 	df_per_gen = create_evolution_analysis_per_task_per_equate_csv(curr_gen,
 																   population,
 																   data_from_all_subjects,
@@ -224,7 +243,8 @@ def accumulate_data(curr_gen, population, data_from_all_subjects, mode, equate, 
 	return df_per_gen
 
 
-def creating_images_for_current_generation(images_dir_per_gen, images_dir, i, should_delete_stimuli, congruency, equate, savedir, actual_mode, generations):
+def creating_images_for_current_generation(images_dir_per_gen, images_dir, i, should_delete_stimuli, congruency, equate,
+										   savedir, actual_mode, generations):
 	total_num_of_files = 0
 	total_num_of_cong = 0
 	total_num_of_incong = 0
@@ -270,14 +290,16 @@ def creating_images_for_current_generation(images_dir_per_gen, images_dir, i, sh
 			logging.info("Original data before deletion per ratio: %s" % num_of_files_per_ratio)
 			for ratio in RATIOS:
 				diff = num_of_files_per_ratio[ratio] - min_num_of_files
-				half_diff = int(diff/2)
-				logging.info("Going to delete : %s files from ratio %s, half %s cong, original was: %s" % (diff, ratio, half_diff, num_of_files_per_ratio[ratio]))
+				half_diff = int(diff / 2)
+				logging.info("Going to delete : %s files from ratio %s, half %s cong, original was: %s" % (
+					diff, ratio, half_diff, num_of_files_per_ratio[ratio]))
 				delete_extra_files("incong" + str(ratio), half_diff, images_dir_per_gen)
 				delete_extra_files("cong" + str(ratio), half_diff, images_dir_per_gen)
 				num_of_incong = len(glob.glob(images_dir_per_gen + os.sep + 'incong' + str(ratio) + '*.jpg'))
 				num_of_cong = len(glob.glob(images_dir_per_gen + os.sep + 'cong' + str(ratio) + '*.jpg'))
 				num_of_files_per_ratio.update({ratio: (num_of_incong + num_of_cong)})
-				logging.info("Number of files per ratio: %s is: incong: %s, cong: %s" % (ratio, num_of_incong,  num_of_cong))
+				logging.info(
+					"Number of files per ratio: %s is: incong: %s, cong: %s" % (ratio, num_of_incong, num_of_cong))
 
 			logging.info("Data after deletion per ratio: %s" % num_of_files_per_ratio)
 			total_num_of_cong += len(glob.glob(images_dir_per_gen + os.sep + 'cong*.jpg'))
@@ -286,8 +308,10 @@ def creating_images_for_current_generation(images_dir_per_gen, images_dir, i, sh
 		else:
 			total_num_of_files = len(generate_new_images(congruency, equate, savedir, i))
 
-		logging.info("Number of files created is: %s, incong: %s, cong: %s" % (total_num_of_files, total_num_of_incong, total_num_of_cong))
-	logging.info("********* Now in mode %s generation %d out of %d reading images from dir: %s *********" % (actual_mode, i, generations, images_dir_per_gen))
+		logging.info("Number of files created is: %s, incong: %s, cong: %s" % (
+			total_num_of_files, total_num_of_incong, total_num_of_cong))
+	logging.info("********* Now in mode %s generation %d out of %d reading images from dir: %s *********" % (
+		actual_mode, i, generations, images_dir_per_gen))
 
 
 def delete_extra_files(prefix, num_of_files_to_delete, images_dir):
@@ -311,7 +335,7 @@ def print_genomes(genomes):
 		genomes (list): The population of networks/genomes
 
 	"""
-	logging.info('-'*80)
+	logging.info('-' * 80)
 
 	for genome in genomes:
 		genome.print_genome()
@@ -325,8 +349,8 @@ def analyze_data(images_path, analysis_path):
 	convex_hulls_perimeter = []
 	convex_hulls_area = []
 	total_area = []
-	#for i in range(0, 11):
-#    file_names = os.listdir(images_path+'_'+str(i))
+	# for i in range(0, 11):
+	#    file_names = os.listdir(images_path+'_'+str(i))
 	file_names = os.listdir(images_path + '_0')
 	for file_name in file_names:
 		arr = file_name.split("_")
@@ -341,7 +365,7 @@ def analyze_data(images_path, analysis_path):
 		convex_hull_area = float(arr[10])
 		convex_hulls_area.append(convex_hull_area)
 		area = arr[12]
-		area = float(area[:area.find('png')-1])
+		area = float(area[:area.find('png') - 1])
 		total_area.append(area)
 	df['class'] = classes
 	df['numeric_value'] = numbers
@@ -350,8 +374,7 @@ def analyze_data(images_path, analysis_path):
 	df['convex_hull_area'] = convex_hulls_area
 	df['total_area'] = total_area
 
-
-	#histogram
+	# histogram
 	plt.figure(figsize=(8, 8))
 	df['numeric_value'].hist(bins=70)
 	title = 'Numeric value histogram in dataset'
@@ -361,7 +384,7 @@ def analyze_data(images_path, analysis_path):
 	plt.savefig(analysis_path + os.sep + 'numeric_value.png')
 	plt.close()
 
-	#Count plot
+	# Count plot
 	plt.figure(figsize=(8, 8))
 	sns.countplot(x='class', data=df)
 	title = 'Size count dataset: Count plot'
@@ -369,7 +392,7 @@ def analyze_data(images_path, analysis_path):
 	plt.savefig(analysis_path + os.sep + 'count_plot.png')
 	plt.close()
 
-	#pair plot
+	# pair plot
 	plt.figure(figsize=(12, 12))
 	sns.pairplot(data=df, hue='class')
 	# title = 'Size count dataset: Pair plot'
@@ -377,7 +400,7 @@ def analyze_data(images_path, analysis_path):
 	plt.savefig(analysis_path + os.sep + 'pair_plot.png')
 	plt.close()
 
-	#facet grid:
+	# facet grid:
 	plt.figure(figsize=(3, 12))
 	g = sns.FacetGrid(data=df, col='class')
 	g.map(plt.hist, 'numeric_value', bins=70)
@@ -387,8 +410,8 @@ def analyze_data(images_path, analysis_path):
 	plt.close()
 
 	df['class'] = df['class'].apply(convert_classes_to_numbers)
-	#corr
-	plt.figure(figsize = (12,12))
+	# corr
+	plt.figure(figsize=(12, 12))
 	sns.heatmap(df.corr(), cmap='coolwarm')
 	plt.title('df.corr()')
 	plt.savefig(analysis_path + os.sep + 'correlations.png')
@@ -430,11 +453,11 @@ def main(args):
 		training_strategy = create_gpu_strategy()
 
 	"""Evolve a genome."""
-	population = args.population # Number of networks/genomes in each generation.
-	#we only need to train the new ones....
-	if (args.ds == 5):
+	population = args.population  # Number of networks/genomes in each generation.
+	# we only need to train the new ones....
+	if args.ds == 5:
 		dataset = 'size_count'
-		#analyze_data(args.images_dir, args.analysis_path)
+	# analyze_data(args.images_dir, args.analysis_path)
 	else:
 		dataset = 'mnist_mlp'
 
@@ -443,25 +466,25 @@ def main(args):
 	if dataset == 'size_count':
 		generations = args.gens  # Number of times to evolve the population.
 		all_possible_genes = {
-			'nb_neurons': [16, 32, 64],
-		#	'nb_neurons': [16, 32, 64, 128, 256],
+			'nb_neurons': [16, 32, 64, 128],
+			#  'nb_neurons': [16, 32, 64, 128, 256],
 			'nb_layers': [2, 3, 4, 5],
 			'activation': ['relu', 'elu', 'tanh', 'sigmoid', 'hard_sigmoid', 'softplus', 'linear'],
 			'optimizer': ['rmsprop', 'adam', 'sgd', 'adagrad', 'adadelta', 'adamax', 'nadam']
 		}
 	else:
-		generations = 8 # Number of times to evolve the population.
+		generations = 8  # Number of times to evolve the population.
 		all_possible_genes = {
 			'nb_neurons': [64, 128, 256, 512, 768, 1024],
-			'nb_layers':  [1, 2, 3, 4, 5],
-			'activation': ['relu', 'elu', 'tanh', 'sigmoid', 'hard_sigmoid','softplus','linear'],
-			'optimizer':  ['rmsprop', 'adam', 'sgd', 'adagrad','adadelta', 'adamax', 'nadam']
+			'nb_layers': [1, 2, 3, 4, 5],
+			'activation': ['relu', 'elu', 'tanh', 'sigmoid', 'hard_sigmoid', 'softplus', 'linear'],
+			'optimizer': ['rmsprop', 'adam', 'sgd', 'adagrad', 'adadelta', 'adamax', 'nadam']
 		}
 
 	# replace nb_neurons with 1 unique value for each layer
 	# 6th value reserved for dense layer
 	nb_neurons = all_possible_genes['nb_neurons']
-	for i in range(1, len(nb_neurons)+1):
+	for i in range(1, len(nb_neurons) + 1):
 		all_possible_genes['nb_neurons_' + str(i)] = nb_neurons
 	# remove old value from dict
 	all_possible_genes.pop('nb_neurons')
@@ -471,14 +494,17 @@ def main(args):
 	if args.strategy == "TPU":
 		batch_size = 8 * training_strategy.num_replicas_in_sync
 		logging.info("*** According to TPU strategy Batch size is %s ***" % batch_size)
-		if args.mode == 'count': # smaller batch because of OOM
+		if args.mode == 'count':  # smaller batch because of OOM
 			batch_size = 16
 			logging.info("*** Batch size was fixed for mode: %s to: %s ***" % (args.mode, batch_size))
 
-	generate(generations=generations, generation_index=1, population=population, all_possible_genes=all_possible_genes, dataset=dataset,
-			 mode=args.mode, mode_th=args.mode_th, images_dir=args.images_dir, stopping_th=args.stopping_th, batch_size=batch_size, epochs=args.epochs, debug_mode=args.debug, congruency=args.congruency,
+	generate(generations=generations, generation_index=1, population=population, all_possible_genes=all_possible_genes,
+			 dataset=dataset,
+			 mode=args.mode, mode_th=args.mode_th, images_dir=args.images_dir, stopping_th=args.stopping_th,
+			 batch_size=batch_size, epochs=args.epochs, debug_mode=args.debug, congruency=args.congruency,
 			 equate=args.equate, savedir=args.savedir, already_switched=False,
-			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=args.should_delete_stimuli, running_on_cloud=args.running_on_cloud, training_strategy=training_strategy)
+			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=args.should_delete_stimuli,
+			 running_on_cloud=args.running_on_cloud, training_strategy=training_strategy)
 
 
 def str2bool(value):
@@ -491,25 +517,31 @@ def str2bool(value):
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='evolve arguments')
 	parser.add_argument('--datasource', dest='ds', type=int, required=True, help='The datasource')
-	parser.add_argument('--population', dest='population', type=int, required=True, help='Number of networks/genomes in each generation.')
+	parser.add_argument('--population', dest='population', type=int, required=True,
+						help='Number of networks/genomes in each generation.')
 	parser.add_argument('--generations', dest='gens', type=int, required=True, help='Number of generations')
 	parser.add_argument('--mode', dest='mode', type=str, required=True, help='task mode (size/count/both)')
-	parser.add_argument('--mode_th', dest='mode_th', type=float, required=True, help='the mode threshold for moving from size to counting')
+	parser.add_argument('--mode_th', dest='mode_th', type=float, required=True,
+						help='the mode threshold for moving from size to counting')
 	parser.add_argument('--images_dir', dest='images_dir', type=str, required=True, help='The images dir')
-	parser.add_argument('--stopping_th', dest='stopping_th', type=float, required=True, help='The stopping threshold of accuracy')
+	parser.add_argument('--stopping_th', dest='stopping_th', type=float, required=True,
+						help='The stopping threshold of accuracy')
 	parser.add_argument('--epochs', dest='epochs', type=int, required=True, help='The epochs')
 	parser.add_argument('--debug', dest='debug', type=str2bool, required=False, default=False, help='debug')
-	parser.add_argument('--analysis_path', dest='analysis_path', type=str, required=True, default='', help='analysis directory')
-	parser.add_argument('--congruency', dest='congruency', type=int, required=True, help='0-incongruent, 1-congruent, 2-both')
-	parser.add_argument('--equate', dest='equate', type=int, required=True,	help='1 is for average diameter; 2 is for total surface area; 3 is for convex hull')
+	parser.add_argument('--analysis_path', dest='analysis_path', type=str, required=True, default='',
+						help='analysis directory')
+	parser.add_argument('--congruency', dest='congruency', type=int, required=True,
+						help='0-incongruent, 1-congruent, 2-both')
+	parser.add_argument('--equate', dest='equate', type=int, required=True,
+						help='1 is for average diameter; 2 is for total surface area; 3 is for convex hull')
 	parser.add_argument('--savedir', dest='savedir', type=str, required=True, help='The save dir')
-	parser.add_argument('--should_delete_stimuli', dest='should_delete_stimuli', type=str2bool, required=False, default=False, help='should delete old generations stimuli images dir')
+	parser.add_argument('--should_delete_stimuli', dest='should_delete_stimuli', type=str2bool, required=False,
+						default=False, help='should delete old generations stimuli images dir')
 	parser.add_argument('--batch_size', dest='batch_size', type=int, required=True, help='The batch_size')
-	parser.add_argument('--running_on_cloud', dest='running_on_cloud', type=str2bool, required=False, help='running on a cloud or locally', default=False)
-	parser.add_argument('--strategy', dest='strategy', type=str, required=False, help='Running on cloud GPU/TPU/CPU', default="CPU")
+	parser.add_argument('--running_on_cloud', dest='running_on_cloud', type=str2bool, required=False,
+						help='running on a cloud or locally', default=False)
+	parser.add_argument('--strategy', dest='strategy', type=str, required=False, help='Running on cloud GPU/TPU/CPU',
+						default="CPU")
 
 	args = parser.parse_args()
 	main(args)
-
-
-

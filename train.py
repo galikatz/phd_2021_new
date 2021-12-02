@@ -1,14 +1,3 @@
-"""
-Generic setup of the data sources and the model training. 
-
-Based on:
-	https://github.com/fchollet/keras/blob/master/examples/mnist_mlp.py
-and also on 
-	https://github.com/fchollet/keras/blob/master/examples/mnist_cnn.py
-
-"""
-import matplotlib
-#matplotlib.use('TKAgg')
 import matplotlib.pyplot as plt
 
 import glob
@@ -374,37 +363,27 @@ def train_and_score(genome, dataset, mode, path, batch_size, epochs, debug_mode,
         for f in glob.glob(old_models_path):
             os.remove(f)
 
-        filename = "models" + os.sep + "best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}_layers_{}_neurons_{}_activation_{}_optimizer_{}"
-        with open(filename + ".json".format(date, mode_name,
-                                                                                                 genome.generation,
-                                                                                                 genome.u_ID,
-                                                                                                 max_val_accuracy,
-                                                                                                 min_val_loss,
-                                                                                                 genome.geneparam['nb_layers'],
-                                                                                                 genome.nb_neurons(),
-                                                                                                 genome.geneparam['activation'],
-                                                                                                 genome.geneparam['optimizer']),
-                  "w") as json_file:
+        filename = ("models" + os.sep + "best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}_layers_{}_neurons_{}_activation_{}_optimizer_{}").format(date, mode_name,
+                                                                                     genome.generation,
+                                                                                     genome.u_ID,
+                                                                                     max_val_accuracy,
+                                                                                     min_val_loss,
+                                                                                     genome.geneparam['nb_layers'],
+                                                                                     genome.nb_neurons(),
+                                                                                     genome.geneparam['activation'],
+                                                                                     genome.geneparam['optimizer'])
+        with open(filename + ".json", "w") as json_file:
             json_file.write(model_json)
-        # serialize weights to HDF5
-        file_name = filename.format(date, mode_name,
-                                                                                              genome.generation,
-                                                                                              genome.u_ID,
-                                                                                              max_val_accuracy,
-                                                                                              min_val_loss,
-                                                                                              genome.geneparam['nb_layers'],
-                                                                                              genome.nb_neurons(),
-                                                                                              genome.geneparam['activation'],
-                                                                                              genome.geneparam['optimizer'])
-        model.save(file_name + ".h5")
-        if debug_mode:
-            # this is the list of all the epochs scores of the current generation - for plotting
-            train_loss = history.history["loss"]
-            val_loss = history.history["val_loss"]
-            train_acc = history.history["accuracy"]
-            val_acc = history.history["val_accuracy"]
-        # plot_genome_after_training_on_epochs_is_done(genome, mode_name, epochs, val_acc, val_loss, train_acc, train_loss, date, max_val_accuracy, min_val_loss)
-        # plot_model(model, to_file=file_name+'.png', show_shapes=True, show_layer_names=True)
+            # serialize weights to HDF5
+            model.save(filename + ".h5")
+            if debug_mode:
+                # this is the list of all the epochs scores of the current generation - for plotting
+                train_loss = history.history["loss"]
+                val_loss = history.history["val_loss"]
+                train_acc = history.history["accuracy"]
+                val_acc = history.history["val_accuracy"]
+            # plot_genome_after_training_on_epochs_is_done(genome, mode_name, epochs, val_acc, val_loss, train_acc, train_loss, date, max_val_accuracy, min_val_loss)
+            # plot_model(model, to_file=file_name+'.png', show_shapes=True, show_layer_names=True)
 
     K.clear_session()
     # getting only the last values
