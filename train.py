@@ -179,16 +179,16 @@ def plot_genome_after_training_on_epochs_is_done(genome, mode, epochs, val_acc, 
     plt.plot(np.arange(1, epochs + 1), val_acc, label="val_acc")
     plt.title("Training Loss and Accuracy: {mode}".format(mode=mode))
     plt.xlabel("Epochs")
-    plt.ylabel("Loss/Accuracy")
+    plt.ylabel("Loss " + os.sep + "Accuracy")
     plt.legend(loc="upper left")
     plt.savefig(
-        "models/best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}.jpg".format(date, mode, genome.generation,
+        "models" + os.sep + "best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}.jpg".format(date, mode, genome.generation,
                                                                                       genome.u_ID, best_accuracy,
                                                                                       best_loss))
 
 
 def train_and_score(genome, dataset, mode, path, batch_size, epochs, debug_mode, max_val_accuracy,
-                    trainer_classification_cache, model=None, tpu_strategy=None):
+                    trainer_classification_cache, model=None, training_strategy=None):
     logging.info("Preparing stimuli")
     input_shape = (IMG_SIZE, IMG_SIZE, 3)#RGB
     nb_classes = 2
@@ -220,8 +220,8 @@ def train_and_score(genome, dataset, mode, path, batch_size, epochs, debug_mode,
         logging.info("*********** Creating a new Keras model for individual %s ***********" % genome.u_ID)
 
         if dataset == 'size_count':
-            if tpu_strategy is not None:
-                with tpu_strategy.scope():
+            if training_strategy is not None:
+                with training_strategy.scope():
                     model = compile_model_cnn(genome, nb_classes, input_shape)
             else:
                 model = compile_model_cnn(genome, nb_classes, input_shape)

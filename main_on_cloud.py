@@ -10,8 +10,6 @@ import argparse
 import os
 import pandas as pd
 import seaborn as sns
-import matplotlib
-#matplotlib.use('TKAgg')
 import matplotlib.pyplot as plt
 from create_images_from_matlab import generate_new_images
 import shutil
@@ -21,19 +19,18 @@ from evolution_utils import create_evolution_analysis_per_task_per_equate_csv, c
 import glob
 from evolution_utils import RATIOS
 from datetime import datetime
-import sys
+import tensorflow as tf
 
 MIN_DIFF = 100
 # Setup logging.
 logging.basicConfig(
 	format='%(asctime)s - %(levelname)s - %(message)s',
 	datefmt='%m/%d/%Y %I:%M:%S %p',
-	level=logging.INFO#,
-	#filename='log.txt'
+	level=logging.INFO
 )
 
 
-def train_genomes(genomes, individuals_models, dataset, mode, path, batch_size, epochs, debug_mode, tpu_strategy):
+def train_genomes(genomes, individuals_models, dataset, mode, path, batch_size, epochs, debug_mode, training_strategy):
 	logging.info("*** Going to train %s individuals ***" % len(genomes))
 	pop_size = len(genomes)
 	#progress bar
@@ -57,7 +54,7 @@ def train_genomes(genomes, individuals_models, dataset, mode, path, batch_size, 
 																							best_individual_acc,
 																							None,
 																							trainer_classification_cache,
-																							tpu_strategy)
+																							training_strategy)
 
 		else:
 			logging.info("*** Individual #%s already in individuals_models ***" % individual_index)
@@ -66,7 +63,7 @@ def train_genomes(genomes, individuals_models, dataset, mode, path, batch_size, 
 																							best_individual_acc,
 																							individuals_models[genome],
 																							trainer_classification_cache,
-																							tpu_strategy)
+																							training_strategy)
 		sum_individual_acc += curr_individual_acc
 
 		individuals_models.update({genome: curr_individual_model})
@@ -91,6 +88,7 @@ def train_genomes(genomes, individuals_models, dataset, mode, path, batch_size, 
 	data_all_subjects = DataAllSubjects(data_per_subject_list)
 	return best_individual_acc, best_individual_loss, individuals_models, avg_accuracy, data_all_subjects, training_set_size, validation_set_size, validation_set_size_congruent
 
+
 def get_best_genome(genomes):
 	"""
 	Gets the best individual in this generation
@@ -110,7 +108,7 @@ def get_best_genome(genomes):
 
 def generate(generations, generation_index, population, all_possible_genes, dataset, mode, mode_th, images_dir,
 			 stopping_th, batch_size, epochs, debug_mode, congruency, equate, savedir, already_switched,
-			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=False, running_on_cloud=False, tpu_strategy=None):
+			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=False, running_on_cloud=False, training_strategy=None):
 	"""Generate a network with the genetic algorithm.
 
 	Args:
@@ -140,6 +138,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 
 	dataframe_list_of_results = []
 
+
 	################ loop over generations ######################
 	start_time = time.time()
 	for i in range(generation_index, generations + 1):
@@ -152,7 +151,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 
 		# Train and Get the best accuracy for this generation from all individuals.
 		# if there is no model existing for this genome it will create one.
-		best_accuracy, best_loss, individuals_models, avg_accuracy,	data_from_all_subjects,  training_set_size, validation_set_size, validation_set_size_congruent = train_genomes(genomes, individual_models, dataset, actual_mode, images_dir_per_gen, batch_size, epochs, debug_mode, tpu_strategy)
+		best_accuracy, best_loss, individuals_models, avg_accuracy,	data_from_all_subjects,  training_set_size, validation_set_size, validation_set_size_congruent = train_genomes(genomes, individual_models, dataset, actual_mode, images_dir_per_gen, batch_size, epochs, debug_mode, training_strategy)
 
 		if (mode != "size-count" and mode != "random-count") and avg_accuracy >= stopping_th:
 			logging.info("Done training! average_accuracy is %s" % str(avg_accuracy))
@@ -178,7 +177,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 					already_switched = True
 
 				# now train again, this time for counting:
-				best_accuracy, best_loss, individuals_models, avg_accuracy, training_set_size, validation_set_size, validation_set_size_congruent = train_genomes(genomes, individual_models, dataset, actual_mode, images_dir_per_gen, batch_size, epochs, debug_mode, tpu_strategy)
+				best_accuracy, best_loss, individuals_models, avg_accuracy, training_set_size, validation_set_size, validation_set_size_congruent = train_genomes(genomes, individual_models, dataset, actual_mode, images_dir_per_gen, batch_size, epochs, debug_mode, training_strategy)
 		# Print out the average accuracy each generation.
 		logging.info("Generation avg accuracy: %.2f%%" % (avg_accuracy * 100))
 		logging.info("Generation best accuracy: %.2f%% and loss: %.2f%%" % (best_accuracy * 100, best_loss))
@@ -204,7 +203,10 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	logging.info("Creating results csvs")
 	total_time = (time.time() - start_time) / 60
 	now_str = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
-	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, "Results_%s_[Mode:_%s_Generations:%s_Population:_%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes].csv" % (now_str, mode, str(i), str(population), str(epochs), avg_accuracy, str(round(total_time, 3))))
+	filename = "Results_%s_Mode:_%s_Generations:%s_Population:_%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes].csv" % (now_str, mode, str(i), str(population), str(epochs), avg_accuracy, str(round(total_time, 3)))
+	filename = filename.replace(":", "_")
+	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, filename)
+	logging.info(f"Done training! took {total_time} minutes.")
 
 
 def accumulate_data(curr_gen, population, data_from_all_subjects, mode, equate, training_set_size, validation_set_size, validation_set_size_congruent):
@@ -382,19 +384,13 @@ def analyze_data(images_path, analysis_path):
 	plt.close()
 
 	df['class'] = df['class'].apply(convert_classes_to_numbers)
-
 	#corr
-
 	plt.figure(figsize = (12,12))
 	sns.heatmap(df.corr(), cmap='coolwarm')
 	plt.title('df.corr()')
 	plt.savefig(analysis_path + os.sep + 'correlations.png')
 	plt.close()
-
-
 	print(df.head(10))
-
-
 	return df
 
 
@@ -405,9 +401,7 @@ def convert_classes_to_numbers(class_name):
 		return 1
 
 
-def main(args):
-	import tensorflow as tf
-	print("Tensorflow version " + tf.__version__)
+def create_tpu_strategy():
 	tpu_strategy = None
 	try:
 		tpu = tf.distribute.cluster_resolver.TPUClusterResolver()  # TPU detection
@@ -417,11 +411,24 @@ def main(args):
 		tpu_strategy = tf.distribute.TPUStrategy(tpu)
 	except ValueError:
 		logging.error('ERROR: Not connected to a TPU runtime')
+	return tpu_strategy
+
+
+def create_gpu_strategy():
+	return tf.distribute.MirroredStrategy()
+
+
+def main(args):
+	training_strategy = None
+	if args.strategy == "TPU":
+		training_strategy = create_tpu_strategy()
+	elif args.strategy == "GPU":
+		logging.info('Running on GPU')
+		training_strategy = create_gpu_strategy()
 
 	"""Evolve a genome."""
 	population = args.population # Number of networks/genomes in each generation.
 	#we only need to train the new ones....
-
 	if (args.ds == 5):
 		dataset = 'size_count'
 		#analyze_data(args.images_dir, args.analysis_path)
@@ -430,12 +437,12 @@ def main(args):
 
 	print("*** Dataset:", dataset)
 
-
 	if dataset == 'size_count':
 		generations = args.gens  # Number of times to evolve the population.
 		all_possible_genes = {
-			'nb_neurons': [16, 32, 64, 128, 256],
-			'nb_layers': [1, 2, 3, 4, 5],
+			'nb_neurons': [16, 32, 64],
+		#	'nb_neurons': [16, 32, 64, 128, 256],
+			'nb_layers': [2, 3, 4, 5],
 			'activation': ['relu', 'elu', 'tanh', 'sigmoid', 'hard_sigmoid', 'softplus', 'linear'],
 			'optimizer': ['rmsprop', 'adam', 'sgd', 'adagrad', 'adadelta', 'adamax', 'nadam']
 		}
@@ -458,8 +465,8 @@ def main(args):
 
 	print("*** Evolving for %d generations with population size = %d ***" % (generations, population))
 	batch_size = args.batch_size
-	if tpu_strategy is not None:
-		batch_size = 8 * tpu_strategy.num_replicas_in_sync
+	if args.strategy == "TPU":
+		batch_size = 8 * training_strategy.num_replicas_in_sync
 		logging.info("*** According to TPU strategy Batch size is %s ***" % batch_size)
 		if args.mode == 'count': # smaller batch because of OOM
 			batch_size = 16
@@ -468,7 +475,8 @@ def main(args):
 	generate(generations=generations, generation_index=1, population=population, all_possible_genes=all_possible_genes, dataset=dataset,
 			 mode=args.mode, mode_th=args.mode_th, images_dir=args.images_dir, stopping_th=args.stopping_th, batch_size=batch_size, epochs=args.epochs, debug_mode=args.debug, congruency=args.congruency,
 			 equate=args.equate, savedir=args.savedir, already_switched=False,
-			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=args.should_delete_stimuli, running_on_cloud=args.running_on_cloud, tpu_strategy=tpu_strategy)
+			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=args.should_delete_stimuli, running_on_cloud=args.running_on_cloud, training_strategy=training_strategy)
+
 
 def str2bool(value):
 	"""Convert string to bool (in argparse context)."""
@@ -494,7 +502,8 @@ if __name__ == '__main__':
 	parser.add_argument('--savedir', dest='savedir', type=str, required=True, help='The save dir')
 	parser.add_argument('--should_delete_stimuli', dest='should_delete_stimuli', type=str2bool, required=False, default=False, help='should delete old generations stimuli images dir')
 	parser.add_argument('--batch_size', dest='batch_size', type=int, required=True, help='The batch_size')
-	parser.add_argument('--running_on_cloud', dest='running_on_cloud', type=str2bool, required=False, help='Running on cloud GPU/TPU/CPU or not', default=False)
+	parser.add_argument('--running_on_cloud', dest='running_on_cloud', type=str2bool, required=False, help='running on a cloud or locally', default=False)
+	parser.add_argument('--strategy', dest='strategy', type=str, required=False, help='Running on cloud GPU/TPU/CPU', default="CPU")
 
 	args = parser.parse_args()
 	main(args)

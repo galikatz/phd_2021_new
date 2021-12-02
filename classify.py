@@ -5,7 +5,6 @@ import os # used for navigating to image path
 import glob
 import logging
 import random
-import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
 from keras.utils import np_utils
 from sklearn.model_selection import train_test_split
@@ -85,7 +84,7 @@ def extract_label(file_name, stimuli_type, task):
 		labels = description.split('_')
 		return {'classification_label': labels[0], 'yellow_num': labels[1], 'blue_num': labels[2]}
 	else:
-		description = file_name[file_name.rindex('/') + 1:file_name.index('.jpg')]
+		description = file_name[file_name.rindex(os.sep) + 1:file_name.index('.jpg')]
 
 		if 'incong' in description:
 			labels = description.split('_')
@@ -236,13 +235,4 @@ def classify_and_split_to_train_test(mode, files, stimuli_type):
 	final_data_after_normalization = np.array(final_data, dtype="float") / 255.0
 	final_labels_as_np_array = np.array(final_labels)
 	(x_train, x_test, y_train, y_test) = train_test_split(final_data_after_normalization, final_labels_as_np_array, test_size=0.2, random_state=101, shuffle=True)
-	return (x_train, x_test, y_train, y_test)
-
-
-if __name__ == '__main__':
-	parser = argparse.ArgumentParser(description='classifier arguments')
-	parser.add_argument('--images_dir', dest='images_dir', type=str, required=True, help='The images dir')
-	parser.add_argument('--stimuli_type', dest='stimuli_type', type=str, required=True, help='The stimuli type')
-	parser.add_argument('--mode', dest='mode', type=str, required=True, help='task mode (size/count/both)')
-	args = parser.parse_args()
-	main(args)
+	return x_train, x_test, y_train, y_test
