@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-
+import os
 
 RATIOS = [50, 56, 63, 71, 75, 86]
 RATIO_NUMBERS = {50: [5, 10], 56: [5, 9], 63: [5, 8], 71: [5, 7], 75: [6, 8], 86: [6, 7]}
@@ -200,9 +200,9 @@ def create_evolution_analysis_per_task_per_equate_csv(generation,
 	return df
 
 
-def concat_dataframes_into_raw_data_csv_cross_generations(data_frame_list, file_name):
+def concat_dataframes_into_raw_data_csv_cross_generations(data_frame_list, dirname, file_name):
 	result_df = pd.DataFrame()
 	for df_per_gen in data_frame_list:
 		result_df = pd.concat([result_df, df_per_gen], ignore_index=True)
 	result_df.set_index('Subject', inplace=True)
-	result_df.to_csv(file_name)
+	result_df.to_csv(dirname + os.sep + file_name)

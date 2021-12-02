@@ -374,7 +374,8 @@ def train_and_score(genome, dataset, mode, path, batch_size, epochs, debug_mode,
         for f in glob.glob(old_models_path):
             os.remove(f)
 
-        with open("models/best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}_layers_{}_neurons_{}_activation_{}_optimizer_{}.json".format(date, mode_name,
+        filename = "models" + os.sep + "best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}_layers_{}_neurons_{}_activation_{}_optimizer_{}"
+        with open(filename + ".json".format(date, mode_name,
                                                                                                  genome.generation,
                                                                                                  genome.u_ID,
                                                                                                  max_val_accuracy,
@@ -386,7 +387,7 @@ def train_and_score(genome, dataset, mode, path, batch_size, epochs, debug_mode,
                   "w") as json_file:
             json_file.write(model_json)
         # serialize weights to HDF5
-        file_name = "models/best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}_layers_{}_neurons_{}_activation_{}_optimizer_{}".format(date, mode_name,
+        file_name = filename.format(date, mode_name,
                                                                                               genome.generation,
                                                                                               genome.u_ID,
                                                                                               max_val_accuracy,
