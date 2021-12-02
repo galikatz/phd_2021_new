@@ -179,10 +179,10 @@ def plot_genome_after_training_on_epochs_is_done(genome, mode, epochs, val_acc, 
     plt.plot(np.arange(1, epochs + 1), val_acc, label="val_acc")
     plt.title("Training Loss and Accuracy: {mode}".format(mode=mode))
     plt.xlabel("Epochs")
-    plt.ylabel("Loss/Accuracy")
+    plt.ylabel("Loss " + os.sep + "Accuracy")
     plt.legend(loc="upper left")
     plt.savefig(
-        "models/best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}.jpg".format(date, mode, genome.generation,
+        "models" + os.sep + "best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}.jpg".format(date, mode, genome.generation,
                                                                                       genome.u_ID, best_accuracy,
                                                                                       best_loss))
 

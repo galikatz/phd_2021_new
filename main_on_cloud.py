@@ -10,8 +10,6 @@ import argparse
 import os
 import pandas as pd
 import seaborn as sns
-import matplotlib
-#matplotlib.use('TKAgg')
 import matplotlib.pyplot as plt
 from create_images_from_matlab import generate_new_images
 import shutil
@@ -21,15 +19,13 @@ from evolution_utils import create_evolution_analysis_per_task_per_equate_csv, c
 import glob
 from evolution_utils import RATIOS
 from datetime import datetime
-import sys
 
 MIN_DIFF = 100
 # Setup logging.
 logging.basicConfig(
 	format='%(asctime)s - %(levelname)s - %(message)s',
 	datefmt='%m/%d/%Y %I:%M:%S %p',
-	level=logging.INFO#,
-	#filename='log.txt'
+	level=logging.INFO
 )
 
 
@@ -90,6 +86,7 @@ def train_genomes(genomes, individuals_models, dataset, mode, path, batch_size, 
 	avg_accuracy = sum_individual_acc / pop_size
 	data_all_subjects = DataAllSubjects(data_per_subject_list)
 	return best_individual_acc, best_individual_loss, individuals_models, avg_accuracy, data_all_subjects, training_set_size, validation_set_size, validation_set_size_congruent
+
 
 def get_best_genome(genomes):
 	"""
@@ -204,7 +201,9 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	logging.info("Creating results csvs")
 	total_time = (time.time() - start_time) / 60
 	now_str = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
-	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, "Results_%s_[Mode:_%s_Generations:%s_Population:_%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes].csv" % (now_str, mode, str(i), str(population), str(epochs), avg_accuracy, str(round(total_time, 3))))
+	filename = "Results_%s_Mode:_%s_Generations:%s_Population:_%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes].csv" % (now_str, mode, str(i), str(population), str(epochs), avg_accuracy, str(round(total_time, 3)))
+	filename = filename.replace(":", "_")
+	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, filename)
 
 
 def accumulate_data(curr_gen, population, data_from_all_subjects, mode, equate, training_set_size, validation_set_size, validation_set_size_congruent):
