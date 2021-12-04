@@ -49,6 +49,9 @@ def train_genomes(genomes, individuals_models, dataset, mode, path, batch_size, 
 		"####################### Refreshing classification cache, once in a generation #######################")
 	trainer_classification_cache = refresh_classification_cache()
 	data_per_subject_list = []
+	training_set_size = None
+	validation_set_size = None
+	validation_set_size_congruent = None
 	for genome in genomes:
 		logging.info("*** Training individual #%s ***" % individual_index)
 		if genome not in individuals_models:
@@ -109,7 +112,7 @@ def get_best_genome(genomes):
 		max_accuracy = max(max_accuracy, genome.accuracy)
 
 	best_genome = genomes_dict.get(max_accuracy)
-	logging.info("best genome has %f accuracy " % (best_genome.accuracy))
+	logging.info("best genome has %f accuracy " % best_genome.accuracy)
 	return best_genome
 
 
@@ -150,6 +153,10 @@ def generate(generations, generation_index, population, all_possible_genes, data
 
 	################ loop over generations ######################
 	start_time = time.time()
+	i = 0
+	avg_accuracy = None
+	best_accuracy = None
+	best_loss = None
 	for i in range(generation_index, generations + 1):
 		### Every new generation we create new stimuli, if there isn't we will modulu the generation number ###
 		images_dir_per_gen = images_dir + "_" + str(i)
