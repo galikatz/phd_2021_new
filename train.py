@@ -359,7 +359,7 @@ def train_and_score(genome, dataset, mode, path, batch_size, epochs, debug_mode,
             mode_name = mode
 
         # delete old files from today because we have better results:
-        old_models_path = "models/best_model_{}_mode_{}*.*".format(date, mode, genome.generation, genome.u_ID)
+        old_models_path = "models" + os.sep + "best_model_{}_mode_{}*.*".format(date, mode, genome.generation, genome.u_ID)
         for f in glob.glob(old_models_path):
             os.remove(f)
 

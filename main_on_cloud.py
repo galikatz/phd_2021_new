@@ -23,6 +23,8 @@ from datetime import datetime
 import tensorflow as tf
 
 MIN_DIFF = 100
+NUM_OF_IMAGES_FILES = 20
+
 # Setup logging.
 logging.basicConfig(
 	format='%(asctime)s - %(levelname)s - %(message)s',
@@ -149,8 +151,10 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	################ loop over generations ######################
 	start_time = time.time()
 	for i in range(generation_index, generations + 1):
-		### Every new generation we create new stimuli ###
+		### Every new generation we create new stimuli, if there isn't we will modulu the generation number ###
 		images_dir_per_gen = images_dir + "_" + str(i)
+		if not os.path.isdir(images_dir_per_gen):
+			images_dir_per_gen = images_dir + "_" + str(i % NUM_OF_IMAGES_FILES)
 		if not running_on_cloud:
 			creating_images_for_current_generation(images_dir_per_gen, images_dir, i, should_delete_stimuli, congruency,
 			equate, savedir, actual_mode, generations)
