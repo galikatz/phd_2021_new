@@ -203,7 +203,8 @@ def generate(generations, generation_index, population, all_possible_genes, data
 					already_switched = True
 
 				# now train again, this time for counting:
-				best_accuracy, best_loss, individuals_models, avg_accuracy, training_set_size, validation_set_size, validation_set_size_congruent = train_genomes(
+				best_accuracy, best_loss, individuals_models, avg_accuracy, data_from_all_subjects, training_set_size, validation_set_size, validation_set_size_congruent = \
+					train_genomes(
 					genomes, individual_models, dataset, actual_mode, images_dir_per_gen, batch_size, epochs,
 					debug_mode, training_strategy)
 		# Print out the average accuracy each generation.
