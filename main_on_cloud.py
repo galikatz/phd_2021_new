@@ -51,7 +51,7 @@ def train_genomes(genomes, individuals_models, dataset, mode, equate, path, batc
 	validation_set_size_congruent = None
 
 	with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count() + 2) as executor:
-		future_to_genome = {executor.submit(train_single_genome, genome, dataset, mode, path, batch_size, epochs,
+		future_to_genome = {executor.submit(train_single_genome, genome, dataset, mode, equate, path, batch_size, epochs,
 				debug_mode,	best_individual_acc, None, trainer_classification_cache, training_strategy, individuals_models): genome for genome in genomes}
 		for future in concurrent.futures.as_completed(future_to_genome):
 			genome = future_to_genome[future]
@@ -76,13 +76,13 @@ def train_genomes(genomes, individuals_models, dataset, mode, equate, path, batc
 	return best_individual_acc, best_individual_loss, individuals_models, avg_accuracy, data_all_subjects, training_set_size, validation_set_size, validation_set_size_congruent
 
 
-def train_single_genome(genome, dataset, mode, path, batch_size, epochs, debug_mode, best_individual_acc, model, trainer_classification_cache, training_strategy, individuals_models):
+def train_single_genome(genome, dataset, mode, equate, path, batch_size, epochs, debug_mode, best_individual_acc, model, trainer_classification_cache, training_strategy, individuals_models):
 	logging.info("*** Training individual #%s ***" % genome.u_ID)
 	if genome not in individuals_models:
 		logging.info(
 			"*** Individual #%s is not in individuals_models, probably after evolution - new offspring ***" % genome.u_ID)
 		curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(
-			dataset, mode, path, batch_size, epochs,
+			dataset, mode, equate, path, batch_size, epochs,
 			debug_mode,
 			best_individual_acc,
 			model,
@@ -92,7 +92,7 @@ def train_single_genome(genome, dataset, mode, path, batch_size, epochs, debug_m
 	else:
 		logging.info("*** Individual #%s already in individuals_models ***" % genome.u_ID)
 		curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(
-			dataset, mode, path, batch_size, epochs,
+			dataset, mode, equate, path, batch_size, epochs,
 			debug_mode,
 			best_individual_acc,
 			individuals_models[genome],
