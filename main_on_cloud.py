@@ -33,7 +33,7 @@ logging.basicConfig(
 )
 
 
-def train_genomes(genomes, individuals_models, dataset, mode, path, batch_size, epochs, debug_mode, training_strategy):
+def train_genomes(genomes, individuals_models, dataset, mode, equate, path, batch_size, epochs, debug_mode, training_strategy):
 	logging.info("*** Going to train %s individuals ***" % len(genomes))
 	pop_size = len(genomes)
 	# progress bar
@@ -58,7 +58,7 @@ def train_genomes(genomes, individuals_models, dataset, mode, path, batch_size, 
 			logging.info(
 				"*** Individual #%s is not in individuals_models, probably after evolution - new offspring ***" % individual_index)
 			curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(
-				dataset, mode, path, batch_size, epochs,
+				dataset, mode, equate, path, batch_size, epochs,
 				debug_mode,
 				best_individual_acc,
 				None,
@@ -68,7 +68,7 @@ def train_genomes(genomes, individuals_models, dataset, mode, path, batch_size, 
 		else:
 			logging.info("*** Individual #%s already in individuals_models ***" % individual_index)
 			curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(
-				dataset, mode, path, batch_size, epochs,
+				dataset, mode, equate, path, batch_size, epochs,
 				debug_mode,
 				best_individual_acc,
 				individuals_models[genome],
@@ -171,7 +171,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 		# Train and Get the best accuracy for this generation from all individuals.
 		# if there is no model existing for this genome it will create one.
 		best_accuracy, best_loss, individuals_models, avg_accuracy, data_from_all_subjects, training_set_size, validation_set_size, validation_set_size_congruent = train_genomes(
-			genomes, individual_models, dataset, actual_mode, images_dir_per_gen, batch_size, epochs, debug_mode,
+			genomes, individual_models, dataset, actual_mode, equate, images_dir_per_gen, batch_size, epochs, debug_mode,
 			training_strategy)
 
 		if (mode != "size-count" and mode != "random-count") and avg_accuracy >= stopping_th:
@@ -205,7 +205,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 				# now train again, this time for counting:
 				best_accuracy, best_loss, individuals_models, avg_accuracy, data_from_all_subjects, training_set_size, validation_set_size, validation_set_size_congruent = \
 					train_genomes(
-					genomes, individual_models, dataset, actual_mode, images_dir_per_gen, batch_size, epochs,
+					genomes, individual_models, dataset, actual_mode, equate, images_dir_per_gen, batch_size, epochs,
 					debug_mode, training_strategy)
 		# Print out the average accuracy each generation.
 		logging.info("Generation avg accuracy: %.2f%%" % (avg_accuracy * 100))

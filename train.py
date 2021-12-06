@@ -176,7 +176,7 @@ def plot_genome_after_training_on_epochs_is_done(genome, mode, epochs, val_acc, 
                                                                                       best_loss))
 
 
-def train_and_score(genome, dataset, mode, path, batch_size, epochs, debug_mode, max_val_accuracy,
+def train_and_score(genome, dataset, mode, equate, path, batch_size, epochs, debug_mode, max_val_accuracy,
                     trainer_classification_cache, model=None, training_strategy=None):
     logging.info("Preparing stimuli")
     input_shape = (IMG_SIZE, IMG_SIZE, 3)#RGB
@@ -363,7 +363,8 @@ def train_and_score(genome, dataset, mode, path, batch_size, epochs, debug_mode,
         for f in glob.glob(old_models_path):
             os.remove(f)
 
-        filename = ("models" + os.sep + "best_model_{}_mode_{}_gen_{}_individual_{}_acc_{}_loss_{}_layers_{}_neurons_{}_activation_{}_optimizer_{}").format(date, mode_name,
+        filename = ("models" + os.sep + "best_model_{}_mode_{}_equate_{}_gen_{}_individual_{}_acc_{}_loss_{}_layers_{}_neurons_{}_activation_{}_optimizer_{}").format(date, mode_name,
+                                                                                     equate,
                                                                                      genome.generation,
                                                                                      genome.u_ID,
                                                                                      max_val_accuracy,
