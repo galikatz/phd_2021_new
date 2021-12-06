@@ -236,7 +236,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	logging.info("Creating results csvs")
 	total_time = (time.time() - start_time) / 60
 	now_str = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
-	filename = "Results_%s_Mode:_%s_Generations:%s_Population:_%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes" % (now_str, mode, str(i), str(population), str(epochs), avg_accuracy, str(round(total_time, 3)))
+	filename = "Results:%s_Mode:%s_Generations:%s_Population:%s_Equate:%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes" % (now_str, mode, str(i), str(population), str(equate), str(epochs), avg_accuracy, str(round(total_time, 3)))
 	filename = filename.replace(":", "_") + ".csv"
 	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, filename)
 	logging.info(f"Done training! took {total_time} minutes.")
