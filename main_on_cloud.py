@@ -12,7 +12,6 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from create_images_from_matlab import generate_new_images
-import shutil
 from sklearn.utils import shuffle
 from train import refresh_classification_cache
 from evolution_utils import create_evolution_analysis_per_task_per_equate_csv, \
@@ -21,6 +20,8 @@ import glob
 from evolution_utils import RATIOS
 from datetime import datetime
 import tensorflow as tf
+import shutil
+import concurrent.futures
 
 MIN_DIFF = 100
 NUM_OF_IMAGES_FILES = 20
@@ -36,67 +37,70 @@ logging.basicConfig(
 def train_genomes(genomes, individuals_models, dataset, mode, path, batch_size, epochs, debug_mode, training_strategy):
 	logging.info("*** Going to train %s individuals ***" % len(genomes))
 	pop_size = len(genomes)
-	# progress bar
-	pbar = tqdm(total=pop_size)
-	individual_index = 1
 	best_individual_acc = 0.0
 	best_individual_loss = 1.0
 	sum_individual_acc = 0
 
 	################## loop over all individuals ##################
 	# refresh classify cache
-	logging.info(
-		"####################### Refreshing classification cache, once in a generation #######################")
+	logging.info("####################### Refreshing classification cache, once in a generation #######################")
 	trainer_classification_cache = refresh_classification_cache()
 	data_per_subject_list = []
 	training_set_size = None
 	validation_set_size = None
 	validation_set_size_congruent = None
-	for genome in genomes:
-		logging.info("*** Training individual #%s ***" % individual_index)
-		if genome not in individuals_models:
-			logging.info(
-				"*** Individual #%s is not in individuals_models, probably after evolution - new offspring ***" % individual_index)
-			curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(
-				dataset, mode, path, batch_size, epochs,
-				debug_mode,
-				best_individual_acc,
-				None,
-				trainer_classification_cache,
-				training_strategy)
 
-		else:
-			logging.info("*** Individual #%s already in individuals_models ***" % individual_index)
-			curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(
-				dataset, mode, path, batch_size, epochs,
-				debug_mode,
-				best_individual_acc,
-				individuals_models[genome],
-				trainer_classification_cache,
-				training_strategy)
-		sum_individual_acc += curr_individual_acc
+	with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count() + 2) as executor:
+		future_to_genome = {executor.submit(train_single_genome, genome, dataset, mode, path, batch_size, epochs,
+				debug_mode,	best_individual_acc, None, trainer_classification_cache, training_strategy, individuals_models): genome for genome in genomes}
+		for future in concurrent.futures.as_completed(future_to_genome):
+			genome = future_to_genome[future]
+			try:
+				curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = future.result()
+				sum_individual_acc += curr_individual_acc
+				data_per_subject_list.append(data_per_subject)
+				# finding the best individual in this generation
+				if ((best_individual_acc < curr_individual_acc) or (
+						best_individual_acc == curr_individual_acc and best_individual_loss > curr_individual_loss)):
+					best_individual_acc = curr_individual_acc
+					best_individual_loss = curr_individual_loss
 
-		individuals_models.update({genome: curr_individual_model})
-
-		# accumulate data per subject
-		data_per_subject_list.append(data_per_subject)
-
-		# finding the best individual in this generation
-		if best_individual_acc < curr_individual_acc:
-			best_individual_acc = curr_individual_acc
-			best_individual_loss = curr_individual_loss
-		elif best_individual_acc == curr_individual_acc and best_individual_loss > curr_individual_loss:
-			best_individual_acc = curr_individual_acc
-			best_individual_loss = curr_individual_loss
-
-		pbar.update(1)
-		individual_index += 1
-	pbar.close()
+			except Exception as exc:
+				logging.info('%r generated an exception: %s' % (genome.u_ID, exc))
+			else:
+				logging.info('%r training is over' % genome.u_ID)
 
 	# calculate the avg accuracy in this generation
 	avg_accuracy = sum_individual_acc / pop_size
 	data_all_subjects = DataAllSubjects(data_per_subject_list)
 	return best_individual_acc, best_individual_loss, individuals_models, avg_accuracy, data_all_subjects, training_set_size, validation_set_size, validation_set_size_congruent
+
+
+def train_single_genome(genome, dataset, mode, path, batch_size, epochs, debug_mode, best_individual_acc, model, trainer_classification_cache, training_strategy, individuals_models):
+	logging.info("*** Training individual #%s ***" % genome.u_ID)
+	if genome not in individuals_models:
+		logging.info(
+			"*** Individual #%s is not in individuals_models, probably after evolution - new offspring ***" % genome.u_ID)
+		curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(
+			dataset, mode, path, batch_size, epochs,
+			debug_mode,
+			best_individual_acc,
+			model,
+			trainer_classification_cache,
+			training_strategy)
+
+	else:
+		logging.info("*** Individual #%s already in individuals_models ***" % genome.u_ID)
+		curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(
+			dataset, mode, path, batch_size, epochs,
+			debug_mode,
+			best_individual_acc,
+			individuals_models[genome],
+			trainer_classification_cache,
+			training_strategy)
+	individuals_models.update({genome: curr_individual_model})
+
+	return curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent
 
 
 def get_best_genome(genomes):

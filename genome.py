@@ -121,7 +121,7 @@ class Genome():
                     		model=model, trainer_classification_cache=new_trainer_classification_cache, training_strategy=training_strategy)
 		# update local variables for evolve function which is based on accuracy.
 		self.accuracy = best_current_val_accuracy
-		self.val_loss =  best_current_val_loss
+		self.val_loss = best_current_val_loss
 		return best_current_val_accuracy, best_current_val_loss, y_test_predictions, model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent
 
 	def print_genome(self):

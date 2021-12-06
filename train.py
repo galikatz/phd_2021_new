@@ -322,7 +322,7 @@ def train_and_score(genome, dataset, mode, path, batch_size, epochs, debug_mode,
     validation_set_size = len(x_test)
     validation_set_size_congruent = len(x_cong_test)
 
-    # savig the results of each prediction
+    # saving the results of each prediction
     y_test_prediction = model.predict(x=x_test, batch_size=batch_size, verbose=0)
 
     # fixing the prediction result to be 0 and 1 and not float thresholds.
