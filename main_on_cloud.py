@@ -50,7 +50,7 @@ def train_genomes(genomes, individuals_models, dataset, mode, equate, path, batc
 	validation_set_size = None
 	validation_set_size_congruent = None
 
-	with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count() + 2) as executor:
+	with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
 		future_to_genome = {executor.submit(train_single_genome, genome, dataset, mode, equate, path, batch_size, epochs,
 				debug_mode,	best_individual_acc, None, trainer_classification_cache, training_strategy, individuals_models): genome for genome in genomes}
 		for future in concurrent.futures.as_completed(future_to_genome):
