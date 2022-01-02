@@ -373,8 +373,8 @@ def balance(images_dir_per_gen):
 		num_of_incong = len(glob.glob(images_dir_per_gen + os.sep + 'incong' + str(ratio) + '*.jpg'))
 		num_of_cong = len(glob.glob(images_dir_per_gen + os.sep + 'cong' + str(ratio) + '*.jpg'))
 		num_of_files_per_ratio.update({ratio: (num_of_incong + num_of_cong)})
-		logging.info(
-			"Number of files per ratio: %s is: incong: %s, cong: %s" % (ratio, num_of_incong, num_of_cong))
+		logging.info("Number of files per ratio: %s is: incong: %s, cong: %s" % (ratio, num_of_incong, num_of_cong))
+	logging.info("Data after deletion per ratio: %s" % num_of_files_per_ratio)
 	return num_of_files_per_ratio
 
 
