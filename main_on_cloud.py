@@ -33,7 +33,8 @@ logging.basicConfig(
 )
 
 
-def train_genomes(genomes, individuals_models, dataset, mode, equate, path, batch_size, epochs, debug_mode, training_strategy):
+def train_genomes(genomes, individuals_models, dataset, mode, equate, path, batch_size, epochs, debug_mode,
+				  training_strategy):
 	logging.info("*** Going to train %s individuals ***" % len(genomes))
 	pop_size = len(genomes)
 	# progress bar
@@ -164,7 +165,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 			images_dir_per_gen = images_dir + "_" + str(i % NUM_OF_IMAGES_FILES)
 		if not running_on_cloud:
 			creating_images_for_current_generation(images_dir_per_gen, images_dir, i, should_delete_stimuli, congruency,
-			equate, savedir, actual_mode, generations)
+												   equate, savedir, actual_mode, generations)
 
 		balance(images_dir_per_gen)
 		print_genomes(genomes)
@@ -172,7 +173,8 @@ def generate(generations, generation_index, population, all_possible_genes, data
 		# Train and Get the best accuracy for this generation from all individuals.
 		# if there is no model existing for this genome it will create one.
 		best_accuracy, best_loss, individuals_models, avg_accuracy, data_from_all_subjects, training_set_size, validation_set_size, validation_set_size_congruent = train_genomes(
-			genomes, individual_models, dataset, actual_mode, equate, images_dir_per_gen, batch_size, epochs, debug_mode,
+			genomes, individual_models, dataset, actual_mode, equate, images_dir_per_gen, batch_size, epochs,
+			debug_mode,
 			training_strategy)
 
 		if (mode != "size-count" and mode != "random-count") and avg_accuracy >= stopping_th:
@@ -206,8 +208,9 @@ def generate(generations, generation_index, population, all_possible_genes, data
 				# now train again, this time for counting:
 				best_accuracy, best_loss, individuals_models, avg_accuracy, data_from_all_subjects, training_set_size, validation_set_size, validation_set_size_congruent = \
 					train_genomes(
-					genomes, individual_models, dataset, actual_mode, equate, images_dir_per_gen, batch_size, epochs,
-					debug_mode, training_strategy)
+						genomes, individual_models, dataset, actual_mode, equate, images_dir_per_gen, batch_size,
+						epochs,
+						debug_mode, training_strategy)
 		# Print out the average accuracy each generation.
 		logging.info("Generation avg accuracy: %.2f%%" % (avg_accuracy * 100))
 		logging.info("Generation best accuracy: %.2f%% and loss: %.2f%%" % (best_accuracy * 100, best_loss))
@@ -237,7 +240,8 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	logging.info("Creating results csvs")
 	total_time = (time.time() - start_time) / 60
 	now_str = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
-	filename = "Results:%s_Mode:%s_Generations:%s_Population:%s_Equate:%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes" % (now_str, mode, str(i), str(population), str(equate), str(epochs), avg_accuracy, str(round(total_time, 3)))
+	filename = "Results:%s_Mode:%s_Generations:%s_Population:%s_Equate:%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes" % (
+	now_str, mode, str(i), str(population), str(equate), str(epochs), avg_accuracy, str(round(total_time, 3)))
 	filename = filename.replace(":", "_") + ".csv"
 	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, filename)
 	logging.info(f"Done training! took {total_time} minutes.")
@@ -304,7 +308,37 @@ def creating_images_for_current_generation(images_dir_per_gen, images_dir, i, sh
 		actual_mode, i, generations, images_dir_per_gen))
 
 
+def validate_balanced_stimuli(images_dir_per_gen) -> ({}, bool):
+	num_of_files_per_ratio = {}
+	is_valid = True
+	for ratio in RATIOS:
+		num_of_cong = len(glob.glob(images_dir_per_gen + os.sep + 'cong' + str(ratio) + '*.jpg'))
+		num_of_incong = len(glob.glob(images_dir_per_gen + os.sep + 'incong' + str(ratio) + '*.jpg'))
+		# now balance by congruency
+		if num_of_cong > num_of_incong:
+			is_valid = False
+
+		if num_of_incong > num_of_cong:
+			is_valid = False
+
+		num_of_files_per_ratio.update({ratio: (num_of_incong + num_of_cong)})
+
+	min_num_of_files = 100000
+	for ratio in RATIOS:
+		if min_num_of_files > num_of_files_per_ratio[ratio]:
+			min_num_of_files = num_of_files_per_ratio[ratio]
+	for ratio in RATIOS:
+		if min_num_of_files != num_of_files_per_ratio[ratio]:
+			is_valid = False
+	return (num_of_files_per_ratio, is_valid)
+
+
 def balance(images_dir_per_gen):
+	(num_of_files_per_ratio, is_valid) = validate_balanced_stimuli(images_dir_per_gen)
+	if is_valid:
+		logging.info("Data is balanced: %s" % num_of_files_per_ratio)
+		return
+
 	num_of_files_per_ratio = {}
 	for ratio in RATIOS:
 		num_of_cong = len(glob.glob(images_dir_per_gen + os.sep + 'cong' + str(ratio) + '*.jpg'))
@@ -325,9 +359,11 @@ def balance(images_dir_per_gen):
 		if min_num_of_files > num_of_files_per_ratio[ratio]:
 			min_num_of_files = num_of_files_per_ratio[ratio]
 			min_ration = ratio
-	logging.info("Minimum number is: %s fo ratio: %s" % (min_num_of_files, min_ration))
+	logging.info("Minimum number is: %s for ratio: %s" % (min_num_of_files, min_ration))
 	logging.info("Original data before deletion per ratio: %s" % num_of_files_per_ratio)
 	for ratio in RATIOS:
+		if ratio == min_ration:
+			continue
 		diff = num_of_files_per_ratio[ratio] - min_num_of_files
 		half_diff = int(diff / 2)
 		logging.info("Going to delete : %s files from ratio %s, half %s cong, original was: %s" % (
