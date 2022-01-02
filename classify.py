@@ -212,6 +212,7 @@ def create_balanced_incong_cong_train_test(x_incong_stimuli, y_incong_labels, x_
 
 	return np.array(x), np.array(y)
 
+
 def classify_and_split_to_train_test(mode, files, stimuli_type):
 	data = []
 	task = mode

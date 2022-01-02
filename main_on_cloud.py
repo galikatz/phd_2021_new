@@ -12,6 +12,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from create_images_from_matlab import generate_new_images
+import shutil
 from sklearn.utils import shuffle
 from train import refresh_classification_cache
 from evolution_utils import create_evolution_analysis_per_task_per_equate_csv, \
@@ -20,8 +21,6 @@ import glob
 from evolution_utils import RATIOS
 from datetime import datetime
 import tensorflow as tf
-import shutil
-import concurrent.futures
 
 MIN_DIFF = 100
 NUM_OF_IMAGES_FILES = 20
@@ -37,70 +36,67 @@ logging.basicConfig(
 def train_genomes(genomes, individuals_models, dataset, mode, equate, path, batch_size, epochs, debug_mode, training_strategy):
 	logging.info("*** Going to train %s individuals ***" % len(genomes))
 	pop_size = len(genomes)
+	# progress bar
+	pbar = tqdm(total=pop_size)
+	individual_index = 1
 	best_individual_acc = 0.0
 	best_individual_loss = 1.0
 	sum_individual_acc = 0
 
 	################## loop over all individuals ##################
 	# refresh classify cache
-	logging.info("####################### Refreshing classification cache, once in a generation #######################")
+	logging.info(
+		"####################### Refreshing classification cache, once in a generation #######################")
 	trainer_classification_cache = refresh_classification_cache()
 	data_per_subject_list = []
 	training_set_size = None
 	validation_set_size = None
 	validation_set_size_congruent = None
+	for genome in genomes:
+		logging.info("*** Training individual #%s ***" % individual_index)
+		if genome not in individuals_models:
+			logging.info(
+				"*** Individual #%s is not in individuals_models, probably after evolution - new offspring ***" % individual_index)
+			curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(
+				dataset, mode, equate, path, batch_size, epochs,
+				debug_mode,
+				best_individual_acc,
+				None,
+				trainer_classification_cache,
+				training_strategy)
 
-	with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
-		future_to_genome = {executor.submit(train_single_genome, genome, dataset, mode, equate, path, batch_size, epochs,
-				debug_mode,	best_individual_acc, None, trainer_classification_cache, training_strategy, individuals_models): genome for genome in genomes}
-		for future in concurrent.futures.as_completed(future_to_genome):
-			genome = future_to_genome[future]
-			try:
-				curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = future.result()
-				sum_individual_acc += curr_individual_acc
-				data_per_subject_list.append(data_per_subject)
-				# finding the best individual in this generation
-				if ((best_individual_acc < curr_individual_acc) or (
-						best_individual_acc == curr_individual_acc and best_individual_loss > curr_individual_loss)):
-					best_individual_acc = curr_individual_acc
-					best_individual_loss = curr_individual_loss
+		else:
+			logging.info("*** Individual #%s already in individuals_models ***" % individual_index)
+			curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(
+				dataset, mode, equate, path, batch_size, epochs,
+				debug_mode,
+				best_individual_acc,
+				individuals_models[genome],
+				trainer_classification_cache,
+				training_strategy)
+		sum_individual_acc += curr_individual_acc
 
-			except Exception as exc:
-				logging.info('%r generated an exception: %s' % (genome.u_ID, exc))
-			else:
-				logging.info('%r training is over' % genome.u_ID)
+		individuals_models.update({genome: curr_individual_model})
+
+		# accumulate data per subject
+		data_per_subject_list.append(data_per_subject)
+
+		# finding the best individual in this generation
+		if best_individual_acc < curr_individual_acc:
+			best_individual_acc = curr_individual_acc
+			best_individual_loss = curr_individual_loss
+		elif best_individual_acc == curr_individual_acc and best_individual_loss > curr_individual_loss:
+			best_individual_acc = curr_individual_acc
+			best_individual_loss = curr_individual_loss
+
+		pbar.update(1)
+		individual_index += 1
+	pbar.close()
 
 	# calculate the avg accuracy in this generation
 	avg_accuracy = sum_individual_acc / pop_size
 	data_all_subjects = DataAllSubjects(data_per_subject_list)
 	return best_individual_acc, best_individual_loss, individuals_models, avg_accuracy, data_all_subjects, training_set_size, validation_set_size, validation_set_size_congruent
-
-
-def train_single_genome(genome, dataset, mode, equate, path, batch_size, epochs, debug_mode, best_individual_acc, model, trainer_classification_cache, training_strategy, individuals_models):
-	logging.info("*** Training individual #%s ***" % genome.u_ID)
-	if genome not in individuals_models:
-		logging.info(
-			"*** Individual #%s is not in individuals_models, probably after evolution - new offspring ***" % genome.u_ID)
-		curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(
-			dataset, mode, equate, path, batch_size, epochs,
-			debug_mode,
-			best_individual_acc,
-			model,
-			trainer_classification_cache,
-			training_strategy)
-
-	else:
-		logging.info("*** Individual #%s already in individuals_models ***" % genome.u_ID)
-		curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = genome.train(
-			dataset, mode, equate, path, batch_size, epochs,
-			debug_mode,
-			best_individual_acc,
-			individuals_models[genome],
-			trainer_classification_cache,
-			training_strategy)
-	individuals_models.update({genome: curr_individual_model})
-
-	return curr_individual_acc, curr_individual_loss, curr_y_test_predictions, curr_individual_model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent
 
 
 def get_best_genome(genomes):
@@ -170,6 +166,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 			creating_images_for_current_generation(images_dir_per_gen, images_dir, i, should_delete_stimuli, congruency,
 			equate, savedir, actual_mode, generations)
 
+		balance(images_dir_per_gen)
 		print_genomes(genomes)
 
 		# Train and Get the best accuracy for this generation from all individuals.
@@ -264,7 +261,6 @@ def creating_images_for_current_generation(images_dir_per_gen, images_dir, i, sh
 	total_num_of_files = 0
 	total_num_of_cong = 0
 	total_num_of_incong = 0
-	num_of_files_per_ratio = {}
 	if not os.path.exists(images_dir_per_gen):
 		# delete old images
 		if should_delete_stimuli and os.path.exists(images_dir + "_" + str(i - 1)):
@@ -285,7 +281,6 @@ def creating_images_for_current_generation(images_dir_per_gen, images_dir, i, sh
 				# else they are equal - no need to create / delete anything
 
 				# now balance per ratio
-
 				if num_of_cong > num_of_incong:
 					diff = num_of_cong - num_of_incong
 					delete_extra_files("cong" + str(ratio), diff, images_dir_per_gen)
@@ -293,29 +288,8 @@ def creating_images_for_current_generation(images_dir_per_gen, images_dir, i, sh
 					diff = num_of_incong - num_of_cong
 					delete_extra_files("incong" + str(ratio), diff, images_dir_per_gen)
 
-				num_of_files_per_ratio.update({ratio: (num_of_incong + num_of_cong)})
-
 			# now balance the amount of files in all ratios to be the same.
-			min_num_of_files = 100000
-			min_ration = -1
-			for ratio in RATIOS:
-				if min_num_of_files > num_of_files_per_ratio[ratio]:
-					min_num_of_files = num_of_files_per_ratio[ratio]
-					min_ration = ratio
-			logging.info("Minimum number is: %s fo ratio: %s" % (min_num_of_files, min_ration))
-			logging.info("Original data before deletion per ratio: %s" % num_of_files_per_ratio)
-			for ratio in RATIOS:
-				diff = num_of_files_per_ratio[ratio] - min_num_of_files
-				half_diff = int(diff / 2)
-				logging.info("Going to delete : %s files from ratio %s, half %s cong, original was: %s" % (
-					diff, ratio, half_diff, num_of_files_per_ratio[ratio]))
-				delete_extra_files("incong" + str(ratio), half_diff, images_dir_per_gen)
-				delete_extra_files("cong" + str(ratio), half_diff, images_dir_per_gen)
-				num_of_incong = len(glob.glob(images_dir_per_gen + os.sep + 'incong' + str(ratio) + '*.jpg'))
-				num_of_cong = len(glob.glob(images_dir_per_gen + os.sep + 'cong' + str(ratio) + '*.jpg'))
-				num_of_files_per_ratio.update({ratio: (num_of_incong + num_of_cong)})
-				logging.info(
-					"Number of files per ratio: %s is: incong: %s, cong: %s" % (ratio, num_of_incong, num_of_cong))
+			num_of_files_per_ratio = balance(images_dir_per_gen)
 
 			logging.info("Data after deletion per ratio: %s" % num_of_files_per_ratio)
 			total_num_of_cong += len(glob.glob(images_dir_per_gen + os.sep + 'cong*.jpg'))
@@ -328,6 +302,44 @@ def creating_images_for_current_generation(images_dir_per_gen, images_dir, i, sh
 			total_num_of_files, total_num_of_incong, total_num_of_cong))
 	logging.info("********* Now in mode %s generation %d out of %d reading images from dir: %s *********" % (
 		actual_mode, i, generations, images_dir_per_gen))
+
+
+def balance(images_dir_per_gen):
+	num_of_files_per_ratio = {}
+	for ratio in RATIOS:
+		num_of_cong = len(glob.glob(images_dir_per_gen + os.sep + 'cong' + str(ratio) + '*.jpg'))
+		num_of_incong = len(glob.glob(images_dir_per_gen + os.sep + 'incong' + str(ratio) + '*.jpg'))
+		# now balance by congruency
+		if num_of_cong > num_of_incong:
+			diff = num_of_cong - num_of_incong
+			delete_extra_files("cong" + str(ratio), diff, images_dir_per_gen)
+		if num_of_incong > num_of_cong:
+			diff = num_of_incong - num_of_cong
+			delete_extra_files("incong" + str(ratio), diff, images_dir_per_gen)
+
+		num_of_files_per_ratio.update({ratio: (num_of_incong + num_of_cong)})
+
+	min_num_of_files = 100000
+	min_ration = -1
+	for ratio in RATIOS:
+		if min_num_of_files > num_of_files_per_ratio[ratio]:
+			min_num_of_files = num_of_files_per_ratio[ratio]
+			min_ration = ratio
+	logging.info("Minimum number is: %s fo ratio: %s" % (min_num_of_files, min_ration))
+	logging.info("Original data before deletion per ratio: %s" % num_of_files_per_ratio)
+	for ratio in RATIOS:
+		diff = num_of_files_per_ratio[ratio] - min_num_of_files
+		half_diff = int(diff / 2)
+		logging.info("Going to delete : %s files from ratio %s, half %s cong, original was: %s" % (
+			diff, ratio, half_diff, num_of_files_per_ratio[ratio]))
+		delete_extra_files("incong" + str(ratio), half_diff, images_dir_per_gen)
+		delete_extra_files("cong" + str(ratio), half_diff, images_dir_per_gen)
+		num_of_incong = len(glob.glob(images_dir_per_gen + os.sep + 'incong' + str(ratio) + '*.jpg'))
+		num_of_cong = len(glob.glob(images_dir_per_gen + os.sep + 'cong' + str(ratio) + '*.jpg'))
+		num_of_files_per_ratio.update({ratio: (num_of_incong + num_of_cong)})
+		logging.info(
+			"Number of files per ratio: %s is: incong: %s, cong: %s" % (ratio, num_of_incong, num_of_cong))
+	return num_of_files_per_ratio
 
 
 def delete_extra_files(prefix, num_of_files_to_delete, images_dir):
