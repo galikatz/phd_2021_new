@@ -147,6 +147,8 @@ def generate(generations, generation_index, population, all_possible_genes, data
 		actual_mode = 'size'  # we start with size, than switch to counting
 	elif mode == 'random-count':
 		actual_mode = 'random'
+	elif mode == 'count-size':
+		actual_mode = 'count'
 	else:
 		actual_mode = mode
 
@@ -177,14 +179,14 @@ def generate(generations, generation_index, population, all_possible_genes, data
 			debug_mode,
 			training_strategy)
 
-		if (mode != "size-count" and mode != "random-count") and avg_accuracy >= stopping_th:
+		if (mode != "size-count" and mode != "count-size" and mode != "random-count") and avg_accuracy >= stopping_th:
 			logging.info("Done training! average_accuracy is %s" % str(avg_accuracy))
 			dataframe_list_of_results.append(
 				accumulate_data(i, population, data_from_all_subjects, mode, equate, training_set_size,
 								validation_set_size, validation_set_size_congruent))
 			break
 
-		if mode == "size-count" or mode == "random-count":  # this is for the first time before the switch
+		if mode == "size-count" or mode == "random-count" or mode == "count-size":  # this is for the first time before the switch
 			if avg_accuracy >= mode_th:
 				if avg_accuracy >= stopping_th:
 					if already_switched:
@@ -197,7 +199,10 @@ def generate(generations, generation_index, population, all_possible_genes, data
 				if not already_switched:
 					logging.info('********** SWITCHING TO COUNTING, STILL IN GENERATION %s, ACCURACY: %s **********' % (
 						str(i), str(best_accuracy)))
-					actual_mode = 'count'
+					if mode == "size-count" or mode == 'random-count':
+						actual_mode = 'count'
+					elif mode == "count-size":
+						actual_mode = 'size'
 
 					# we have to reset the accuracy before training a new task.
 					for genome in genomes:
