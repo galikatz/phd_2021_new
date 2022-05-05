@@ -102,6 +102,12 @@ def extract_label(file_name, stimuli_type, task):
 					classification_label = '1'#right is bigger in count
 				else:
 					classification_label = '0'
+			elif task == 'colors':  # Where is Cyan?
+				left_color = labels[7]
+				if left_color == 'c':
+					classification_label = '0'  # left stimulus is cyan
+				else:
+					classification_label = '1'  # right stimulus is cyan
 		else:#congruent
 			labels = description.split('_')
 			ratio = labels[0].replace('cong', '')
@@ -118,12 +124,12 @@ def extract_label(file_name, stimuli_type, task):
 					classification_label = '1'
 				else:
 					classification_label = '0'
-		if task == 'random':
-			random_result = random.random()
-			if random_result > 0.5:
-				classification_label = '0' # left stimulus is bigger
-			else:
-				classification_label = '1'  # right stimulus is bigger
+			elif task == 'colors':  # Where is Cyan?
+				left_color = labels[7]
+				if left_color == 'c':
+					classification_label = '0'  # left stimulus is cyan
+				else:
+					classification_label = '1'  # right stimulus is cyan
 
 		return {'congruency': congruency, 'ratio': ratio, 'left_num': labels[1], 'right_num': labels[2], 'classification_label': classification_label}
 

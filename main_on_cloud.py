@@ -145,10 +145,12 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	# Evolve the generation.
 	if mode == 'size-count':
 		actual_mode = 'size'  # we start with size, than switch to counting
-	elif mode == 'random-count':
-		actual_mode = 'random'
+	elif mode == 'colors-count':
+		actual_mode = 'colors'
 	elif mode == 'count-size':
 		actual_mode = 'count'
+	elif mode == 'colors':
+		actual_mode = 'colors'
 	else:
 		actual_mode = mode
 
@@ -179,14 +181,14 @@ def generate(generations, generation_index, population, all_possible_genes, data
 			debug_mode,
 			training_strategy)
 
-		if (mode != "size-count" and mode != "count-size" and mode != "random-count") and avg_accuracy >= stopping_th:
+		if (mode != "size-count" and mode != "count-size" and mode != "colors-count") and avg_accuracy >= stopping_th:
 			logging.info("Done training! average_accuracy is %s" % str(avg_accuracy))
 			dataframe_list_of_results.append(
 				accumulate_data(i, population, data_from_all_subjects, mode, equate, training_set_size,
 								validation_set_size, validation_set_size_congruent))
 			break
 
-		if mode == "size-count" or mode == "random-count" or mode == "count-size":  # this is for the first time before the switch
+		if mode == "size-count" or mode == "colors-count" or mode == "count-size":  # this is for the first time before the switch
 			if avg_accuracy >= mode_th:
 				if avg_accuracy >= stopping_th:
 					if already_switched:
@@ -199,7 +201,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 				if not already_switched:
 					logging.info('********** SWITCHING TO COUNTING, STILL IN GENERATION %s, ACCURACY: %s **********' % (
 						str(i), str(best_accuracy)))
-					if mode == "size-count" or mode == 'random-count':
+					if mode == "size-count" or mode == 'colors-count':
 						actual_mode = 'count'
 					elif mode == "count-size":
 						actual_mode = 'size'
@@ -277,16 +279,16 @@ def creating_images_for_current_generation(images_dir_per_gen, images_dir, i, sh
 		# now generate the next dir
 		if congruency == 2:  # both cong and incong are required
 			for ratio in RATIOS:
-				num_of_incong = generate_new_images(0, equate, savedir, i, "incong" + str(ratio), ratio)
-				num_of_cong = generate_new_images(1, equate, savedir, i, "cong" + str(ratio), ratio)
+				num_of_incong = generate_new_images(0, equate, savedir, i, "incong" + str(ratio), ratio, actual_mode)
+				num_of_cong = generate_new_images(1, equate, savedir, i, "cong" + str(ratio), ratio, actual_mode)
 				# balance incong and cong sizes:
 				while num_of_cong - num_of_incong > MIN_DIFF:
 					# create more incongruent
-					num_of_incong = generate_new_images(0, equate, savedir, i, "incong" + str(ratio), ratio)
+					num_of_incong = generate_new_images(0, equate, savedir, i, "incong" + str(ratio), ratio, actual_mode)
 
 				while num_of_incong - num_of_cong > MIN_DIFF:
 					# create more congruent
-					num_of_cong = generate_new_images(1, equate, savedir, i, "cong" + str(ratio), ratio)
+					num_of_cong = generate_new_images(1, equate, savedir, i, "cong" + str(ratio), ratio, actual_mode)
 				# else they are equal - no need to create / delete anything
 
 				# now balance per ratio
@@ -305,7 +307,7 @@ def creating_images_for_current_generation(images_dir_per_gen, images_dir, i, sh
 			total_num_of_incong += len(glob.glob(images_dir_per_gen + os.sep + 'incong*.jpg'))
 			total_num_of_files += (total_num_of_cong + total_num_of_incong)
 		else:
-			total_num_of_files = len(generate_new_images(congruency, equate, savedir, i))
+		 	total_num_of_files = len(generate_new_images(congruency, equate, savedir, i, actual_mode))
 
 		logging.info("Number of files created is: %s, incong: %s, cong: %s" % (
 			total_num_of_files, total_num_of_incong, total_num_of_cong))

@@ -15,7 +15,7 @@ def main(arguments):
 	eng.quit()
 
 
-def generate_new_images(congruency, equate, savedir, index, prefix=None, ratio=50):
+def generate_new_images(congruency, equate, savedir, index, prefix=None, ratio=50, actual_mode='size'):
 	# This is here because on cloud mode we do not want to import this
 	import matlab.engine
 	eng = matlab.engine.start_matlab()
@@ -24,7 +24,7 @@ def generate_new_images(congruency, equate, savedir, index, prefix=None, ratio=5
 	retries = 0
 	while generating_stimuli and retries < 5:
 		try:
-			eng.pipeline_from_python(congruency, equate, savedir, str(index), ratio, nargout=0)
+			eng.pipeline_from_python(congruency, equate, savedir, str(index), ratio, actual_mode, nargout=0)
 			generating_stimuli = False
 		except Exception as e:
 			logging.error("Timeout exception trying again for index: %s and ratio: %s" % (index, ratio))
