@@ -26,7 +26,7 @@ def plot_stimuli_histogram(dir):
         phys_prop_df["stimuli"] = stimuli_list
         histogram_df = pd.concat([histogram_df, phys_prop_df])
 
-    fig = px.bar(histogram_df, x='phyisical_property', y='stimuli', color='generation', title=f"Number of stimuli per physical property from dir {dir}")
+    fig = px.bar(histogram_df, x='phyisical_property', y='stimuli', color='generation', barmode='group', text_auto=True, title=f"Number of stimuli per physical property from dir {dir}")
     fig.show()
 
 
