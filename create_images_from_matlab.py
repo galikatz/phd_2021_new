@@ -31,7 +31,11 @@ def generate_new_images(congruency, equate, savedir, index, prefix=None, ratio=5
 			retries += 1
 	eng.quit()
 	if prefix:
-		number_files_created = len(fnmatch.filter(os.listdir(savedir + "_" + str(index)), prefix +'*.jpg'))
+		try:
+			number_files_created = len(fnmatch.filter(os.listdir(savedir + "_" + str(index)), prefix +'*.jpg'))
+		except Exception as e:
+			os.mkdir(savedir + "_" + str(index))
+			return 0
 	else:
 		number_files_created = len(fnmatch.filter(os.listdir(savedir + "_" + str(index)), '*.jpg'))
 	return number_files_created

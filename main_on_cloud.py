@@ -199,7 +199,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 						break
 
 				if not already_switched:
-					logging.info('********** SWITCHING TO COUNTING, STILL IN GENERATION %s, ACCURACY: %s **********' % (
+					logging.info('********** SWITCHING TO 2nd task, STILL IN GENERATION %s, ACCURACY: %s **********' % (
 						str(i), str(best_accuracy)))
 					if mode == "size-count" or mode == 'colors-count':
 						actual_mode = 'count'
