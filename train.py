@@ -15,6 +15,7 @@ import seaborn as sns
 from datetime import datetime
 from evolution_utils import DataPerSubject
 from classify import creating_train_test_data, IMG_SIZE
+import tensorflow as tf
 
 # Helper: Early stopping.
 early_stopper = EarlyStopping(monitor='val_loss', min_delta=0.1, patience=2, verbose=0, mode='auto')
@@ -151,7 +152,7 @@ def compile_model_cnn(genome, nb_classes, input_shape):
     bce = losses.BinaryCrossentropy(reduction='none')
     model.compile(loss=bce,
                   optimizer=optimizer,
-                  metrics=['accuracy'])
+                  metrics=[tf.keras.metrics.AUC()])
 
     return model
 
@@ -233,8 +234,8 @@ def train_and_score(genome, dataset, mode, equate, path, batch_size, epochs, deb
     score = model.evaluate(x=x_test, y=y_test, batch_size=batch_size, verbose=0)
 
     # taking the last epocj result to be kept ( and not all the loss and accuracies from all epochs, since the last epoch is the best)
-    training_accuracy = history.history["accuracy"][-1]
-    validation_accuracy = history.history["val_accuracy"][-1]
+    training_accuracy = history.history["auc"][-1]
+    validation_accuracy = history.history["val_auc"][-1]
     training_loss = history.history["loss"][-1]
     validation_loss = history.history["val_loss"][-1]
 
