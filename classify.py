@@ -14,6 +14,7 @@ from keras.constraints import maxnorm
 from keras.utils.np_utils import to_categorical
 from keras.layers.convolutional import Conv2D, MaxPooling2D
 from evolution_utils import RATIOS
+from train_test_data import TrainTestData
 
 IMG_SIZE = 100
 
@@ -191,7 +192,14 @@ def creating_train_test_data(dir, stimuli_type, mode, nb_classes):
 
 		ratios_validation_dataset.update({ratio: [(x_ratio_cong_test, y_ratio_cong_test), (x_ratio_incong_test, y_ratio_incong_test)]})
 
-	return (x_train, y_train), (x_test, y_test), (x_cong_train, y_cong_train), (x_incong_train, y_incong_train), (x_cong_test, y_cong_test), (x_incong_test, y_incong_test), ratios_training_dataset, ratios_validation_dataset
+	train_test_data = TrainTestData(ratios_training_dataset, ratios_validation_dataset,
+                 x_train, y_train,
+                 x_test, y_test,
+                 x_cong_train, y_cong_train,
+                 x_incong_train, y_incong_train,
+                 x_cong_test, y_cong_test,
+                 x_incong_test, y_incong_test)
+	return train_test_data
 
 
 def create_balanced_incong_cong_train_test(x_incong_stimuli, y_incong_labels, x_cong_stimuli, y_cong_labels):
