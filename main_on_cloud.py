@@ -3,6 +3,7 @@ from __future__ import print_function
 
 import time
 
+import train
 from evolver import Evolver
 from tqdm import tqdm
 import logging
@@ -16,12 +17,15 @@ import shutil
 from sklearn.utils import shuffle
 from train import refresh_classification_cache
 from evolution_utils import create_evolution_analysis_per_task_per_equate_csv, \
-	concat_dataframes_into_raw_data_csv_cross_generations, DataAllSubjects
+	concat_dataframes_into_raw_data_csv_cross_generations, DataAllSubjects, evaluate_model
 import glob
 from evolution_utils import RATIOS
 from datetime import datetime
 import tensorflow as tf
 from train_test_data import TrainGenomeResult
+from load_networks_and_test import get_physical_properties_to_load, load_models_for_genomes
+from classify import creating_train_test_data
+from keras import losses
 
 MIN_DIFF = 100
 NUM_OF_IMAGES_FILES = 20
@@ -122,7 +126,7 @@ def get_best_genome(genomes):
 def generate(generations, generation_index, population, all_possible_genes, dataset, mode, mode_th, images_dir,
 			 stopping_th, batch_size, epochs, debug_mode, congruency, equate, savedir, already_switched,
 			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=False, running_on_cloud=False,
-			 training_strategy=None):
+			 training_strategy=None, hd5_path=None):
 	"""Generate a network with the genetic algorithm.
 
 	Args:
@@ -261,6 +265,46 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	filename = filename.replace(":", "_") + ".csv"
 	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, filename)
 	logging.info(f"Done training! took {total_time} minutes.")
+
+	###############################################################
+	# Testing on different stimuli only once when training is over!
+	###############################################################
+
+	logging.info("##########  Loading models %s #########")
+	models_data = load_models_for_genomes(genomes, hd5_path)
+
+	list_of_stimuli_data = get_physical_properties_to_load(images_dir, equate)
+	for stimuli_data in list_of_stimuli_data:
+
+		new_train_test_data = creating_train_test_data(dir=stimuli_data.path, stimuli_type="katzin", mode=mode, nb_classes=train.FIXED_NB_CLASSES)
+
+		avg_tested_acc = 0
+		avg_tested_loss = 0
+		test_dataframe_list_of_results = []
+		test_data_all_subjects = []
+		for genome in models_data:
+			logging.info("##########  Testing model that was trained on equate_%s for genome: %s on %s #########" % (equate, str(genome.u_ID), stimuli_data.equate))
+
+			optimizer = genome.geneparam['optimizer']
+
+			model = models_data[genome]
+			bce = losses.BinaryCrossentropy(reduction='none')
+			model.compile(loss=bce, optimizer=optimizer, metrics=["accuracy"])
+
+			test_genome_result = evaluate_model(genome=genome, model=model, history=None, train_test_data=new_train_test_data, batch_size=batch_size)
+			test_data_all_subjects.append(test_genome_result.data_per_subject)
+
+			avg_tested_acc += test_genome_result.curr_individual_acc
+			avg_tested_loss = avg_tested_loss + test_genome_result.curr_individual_loss
+		test_dataframe_list_of_results.append(accumulate_data(i, population, DataAllSubjects(test_data_all_subjects), mode, equate,
+							test_genome_result.training_set_size, test_genome_result.validation_set_size,
+							test_genome_result.validation_set_size_congruent))
+		avg_tested_acc /= len(models_data)
+		avg_tested_loss /= len(models_data)
+		test_filename = "Results_%s_Mode_%s_Trained_on_Equate_%s_Tested_on_%s_AvgAccuracy_%.2f%%_AvgLoss_%.2f%%.csv" % (
+		datetime.now().strftime("%d-%m-%Y_%H-%M-%S"), mode, str(equate), stimuli_data.equate.replace("equate", "Equate"), avg_tested_acc, avg_tested_loss)
+		concat_dataframes_into_raw_data_csv_cross_generations(test_dataframe_list_of_results, test_filename)
+		logging.info(f"Done Testing individuals trained on Equate_%s tested on %s !" %(equate, stimuli_data.equate))
 
 
 def accumulate_data(curr_gen, population, data_from_all_subjects, mode, equate, training_set_size, validation_set_size,
@@ -584,7 +628,7 @@ def main(args):
 			 batch_size=batch_size, epochs=args.epochs, debug_mode=args.debug, congruency=args.congruency,
 			 equate=args.equate, savedir=args.savedir, already_switched=False,
 			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=args.should_delete_stimuli,
-			 running_on_cloud=args.running_on_cloud, training_strategy=training_strategy)
+			 running_on_cloud=args.running_on_cloud, training_strategy=training_strategy, hd5_path=args.hd5_path)
 
 
 def str2bool(value):
@@ -622,6 +666,7 @@ if __name__ == '__main__':
 						help='running on a cloud or locally', default=False)
 	parser.add_argument('--strategy', dest='strategy', type=str, required=False, help='Running on cloud GPU/TPU/CPU',
 						default="CPU")
+	parser.add_argument('--hd5_path', dest='hd5_path', type=str, required=False, help='hd5_path',default="/Users/gali.k/phd/phd_2021/models")
 
 	args = parser.parse_args()
 	main(args)
