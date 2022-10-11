@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 import plotly.express as px
-
+import glob
 physical_properties = ["equate_1", "equate_2", "equate_3"]
 
 
@@ -14,7 +14,7 @@ def plot_stimuli_histogram(dir):
         gen_list = []
         stimuli_list = []
         phys_prop_dir = dir + os.sep + phys_prop
-        num_of_images_folders = len(os.listdir(phys_prop_dir))
+        num_of_images_folders = len(glob.glob(phys_prop_dir + os.sep + f"images_*"))
         for i in range(1, num_of_images_folders + 1):
             images_dir = phys_prop_dir + os.sep + "images_" + str(i)
             num_of_stimuli = len(os.listdir(images_dir))

@@ -68,8 +68,8 @@ def validate_files(path) -> (bool, str):
     is_valid = True
     return is_valid, f"Stimuli amount is valid in per all ratios in all gens"
 
-PATH = "/Users/gali.k/phd/Genereating_dot_arrays"
-
+#PATH = "/Users/gali.k/phd/Genereating_dot_arrays"
+PATH = "C:\gali_phd\colors\equate_3"
 
 if __name__ == '__main__':
     is_valid, msg = validate_files(PATH)
