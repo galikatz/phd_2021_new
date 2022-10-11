@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import os
+from train_test_data import TrainResult
+from sklearn.metrics import roc_auc_score
 
 RATIOS = [50, 56, 63, 71, 75, 86]
 RATIO_NUMBERS = {50: [5, 10], 56: [5, 9], 63: [5, 8], 71: [5, 7], 75: [6, 8], 86: [6, 7]}
@@ -88,7 +90,7 @@ def create_evolution_analysis_per_task_per_equate_csv(generation,
 			   'Generations',
 			   'Training_Accuracy',
 			   'Validation_Accuracy',
-			   'Training_loss',
+			   'Training_Loss',
 			   'Validation_Loss',
 			   'Training_set_size',
 			   'Validation_set_size',
@@ -205,3 +207,150 @@ def concat_dataframes_into_raw_data_csv_cross_generations(data_frame_list, file_
 		result_df = pd.concat([result_df, df_per_gen], ignore_index=True)
 	result_df.set_index('Subject', inplace=True)
 	result_df.to_csv("results" + os.sep + file_name)
+
+
+def evaluate_model(genome, model, history, train_test_data, batch_size):
+	# The score contains the validation accuracy (score[1]) and the validation loss score[0])
+	score = model.evaluate(x=train_test_data.x_test, y=train_test_data.y_test, batch_size=batch_size, verbose=0)
+
+	# # taking the last epoch result to be kept ( and not all the loss and accuracies from all epochs, since the last epoch is the best)
+	if history is not None:
+		training_accuracy = history.history["accuracy"][-1]
+		validation_accuracy = history.history["val_accuracy"][-1]
+		training_loss = history.history["loss"][-1]
+		validation_loss = history.history["val_loss"][-1]
+	else: # when we are in testing other stimuli we don't have history of training
+		train_score = model.evaluate(x=train_test_data.x_train, y=train_test_data.y_train, batch_size=batch_size, verbose=0)
+		training_accuracy = train_score[1]
+		validation_accuracy = score[1]
+		training_loss = train_score[0]
+		validation_loss = score[0]
+
+	# evaluate training congruency
+	training_score_congruent = model.evaluate(x=train_test_data.x_cong_train, y=train_test_data.y_cong_train,
+											  batch_size=batch_size, verbose=0)
+	training_score_incongruent = model.evaluate(x=train_test_data.x_incong_train, y=train_test_data.y_incong_train,
+												batch_size=batch_size, verbose=0)
+
+	training_accuracy_congruent = training_score_congruent[1]
+	training_accuracy_incongruent = training_score_incongruent[1]
+	training_loss_congruent = training_score_congruent[0]
+	training_loss_incongruent = training_score_incongruent[0]
+
+	# evaluate validation congruency
+	validation_score_congruent = model.evaluate(x=train_test_data.x_cong_test, y=train_test_data.y_cong_test,
+												batch_size=batch_size, verbose=0)
+	validation_score_incongruent = model.evaluate(x=train_test_data.x_incong_test, y=train_test_data.y_incong_test,
+												  batch_size=batch_size, verbose=0)
+
+	validation_accuracy_congruent = validation_score_congruent[1]
+	validation_accuracy_incongruent = validation_score_incongruent[1]
+	validation_loss_congruent = validation_score_congruent[0]
+	validation_loss_incongruent = validation_score_incongruent[0]
+
+	training_congruency_result = {"training_accuracy_congruent": training_accuracy_congruent,
+								  "training_accuracy_incongruent": training_accuracy_incongruent,
+								  "training_loss_congruent": training_loss_congruent,
+								  "training_loss_incongruent": training_loss_incongruent}
+	validation_congruency_result = {"validation_accuracy_congruent": validation_accuracy_congruent,
+									"validation_accuracy_incongruent": validation_accuracy_incongruent,
+									"validation_loss_congruent": validation_loss_congruent,
+									"validation_loss_incongruent": validation_loss_incongruent}
+
+	ratio_results = {}
+	for ratio in train_test_data.ratios_validation_dataset:
+		training_cong_touple = train_test_data.ratios_validation_dataset[ratio][0]
+		training_incong_touple = train_test_data.ratios_validation_dataset[ratio][1]
+		x_ratio_cong_train = training_cong_touple[0]
+		y_ratio_cong_train = training_cong_touple[1]
+		x_ratio_incong_train = training_incong_touple[0]
+		y_ratio_incong_train = training_incong_touple[1]
+
+		validation_cong_touple = train_test_data.ratios_validation_dataset[ratio][0]
+		validation_incong_touple = train_test_data.ratios_validation_dataset[ratio][1]
+		x_ratio_cong_test = validation_cong_touple[0]
+		y_ratio_cong_test = validation_cong_touple[1]
+		x_ratio_incong_test = validation_incong_touple[0]
+		y_ratio_incong_test = validation_incong_touple[1]
+
+		training_score_ratio_congruent = model.evaluate(x=x_ratio_cong_train, y=y_ratio_cong_train,
+														batch_size=batch_size, verbose=0)
+		training_score_ratio_incongruent = model.evaluate(x=x_ratio_incong_train, y=y_ratio_incong_train,
+														  batch_size=batch_size, verbose=0)
+
+		vaildation_score_ratio_congruent = model.evaluate(x=x_ratio_cong_test, y=y_ratio_cong_test,
+														  batch_size=batch_size, verbose=0)
+		vaildation_score_ratio_incongruent = model.evaluate(x=x_ratio_incong_test, y=y_ratio_incong_test,
+															batch_size=batch_size, verbose=0)
+
+		ratio_training_accuracy_congruent = training_score_ratio_congruent[1]
+		ratio_training_accuracy_incongruent = training_score_ratio_incongruent[1]
+		ratio_training_loss_congruent = training_score_ratio_congruent[0]
+		ratio_training_loss_incongruent = training_score_ratio_incongruent[0]
+
+		ratio_validation_accuracy_congruent = vaildation_score_ratio_congruent[1]
+		ratio_validation_accuracy_incongruent = vaildation_score_ratio_incongruent[1]
+		ratio_validation_loss_congruent = vaildation_score_ratio_congruent[0]
+		ratio_validation_loss_incongruent = vaildation_score_ratio_incongruent[0]
+		ratio_results.update({ratio: [{"ratio_training_accuracy_congruent": ratio_training_accuracy_congruent},
+									  {"ratio_training_accuracy_incongruent": ratio_training_accuracy_incongruent},
+									  {"ratio_training_loss_congruent": ratio_training_loss_congruent},
+									  {"ratio_training_loss_incongruent": ratio_training_loss_incongruent},
+									  {"ratio_validation_accuracy_congruent": ratio_validation_accuracy_congruent},
+									  {"ratio_validation_accuracy_incongruent": ratio_validation_accuracy_incongruent},
+									  {"ratio_validation_loss_congruent": ratio_validation_loss_congruent},
+									  {"ratio_validation_loss_incongruent": ratio_validation_loss_incongruent}]})
+
+	data_per_subject = DataPerSubject(genome.u_ID,
+									  training_accuracy,
+									  validation_accuracy,
+									  training_loss,
+									  validation_loss,
+									  training_congruency_result,
+									  validation_congruency_result,
+									  ratio_results,
+									  genome.geneparam['nb_layers'],
+									  genome.nb_neurons(),
+									  genome.geneparam['activation'],
+									  genome.geneparam['optimizer'])
+
+	training_set_size = len(train_test_data.x_train)
+	validation_set_size = len(train_test_data.x_test)
+	validation_set_size_congruent = len(train_test_data.x_cong_test)
+
+	roc_score, y_test_corrected = predict_and_calc_roc_score(model, train_test_data, batch_size)
+
+	best_current_val_loss = round(score[0], 3)
+	best_current_val_accuracy = round(score[1], 3)
+	print('Best current test loss from all epochs:',
+		  best_current_val_loss)  # takes the minimum loss from all the epochs
+	print('Best current test accuracy from all epochs based on minimal loss:',
+		  best_current_val_accuracy)  # taking the accuracy of the minimal loss above.
+
+	train_result = TrainResult(best_current_val_accuracy,
+							   best_current_val_loss,
+							   y_test_corrected,
+							   model,
+							   data_per_subject,
+							   training_set_size,
+							   validation_set_size,
+							   validation_set_size_congruent)
+	return train_result
+
+
+def predict_and_calc_roc_score(model, train_test_data, batch_size):
+	# saving the results of each prediction
+	y_test_prediction = model.predict(x=train_test_data.x_test, batch_size=batch_size, verbose=0)
+
+	# fixing the prediction result to be 0 and 1 and not float thresholds.
+	y_test_corrected = []
+	for i in range(len(y_test_prediction)):
+		if y_test_prediction[i][0] > 0.5:
+			left_stimulus_result = 1
+			right_stimulus_result = 0
+		else:
+			left_stimulus_result = 0
+			right_stimulus_result = 1
+		y_test_corrected.append(np.array([left_stimulus_result, right_stimulus_result]))
+	roc_score = roc_auc_score(train_test_data.y_test, y_test_corrected)
+	return roc_score, y_test_corrected

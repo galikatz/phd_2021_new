@@ -28,13 +28,14 @@ def plot_stimuli_histogram(dir):
 
     fig = px.bar(histogram_df, x='phyisical_property', y='stimuli', color='generation', barmode='group', text_auto=True, title=f"Number of stimuli per physical property from dir {dir}")
     fig.show()
+    pass
 
 
 
 
 if __name__ == '__main__':
-    path = "C:\gali_phd" + os.sep
+    path = "/Users/gali.k/phd/phd_2021/stimui" + os.sep
     plot_stimuli_histogram(path)
 
-    path = "C:\gali_phd\colors" + os.sep
+    path = "/Users/gali.k/phd/phd_2021/stimui/colors" + os.sep
     plot_stimuli_histogram(path)

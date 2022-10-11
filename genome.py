@@ -4,13 +4,7 @@ import random
 import logging
 import hashlib
 import copy
-# import matplotlib
-# matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-from keras.utils.vis_utils import plot_model
-import numpy as np
 from train import train_and_score
-
 DEBUG = False
 
 class Genome():
@@ -112,17 +106,16 @@ class Genome():
 		self.update_hash()
 
 	def train(self, trainingset, mode, equate, path, batch_size, epochs, debug_mode, best_individual_acc, model, new_trainer_classification_cache, training_strategy):
-		best_current_val_accuracy, best_current_val_loss, y_test_predictions, model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent = \
-			train_and_score(genome=self,
+		train_result = train_and_score(genome=self,
 							dataset=trainingset,
 							mode=mode, equate=equate, path=path,
 							batch_size=batch_size, epochs=epochs,
 							debug_mode=debug_mode, max_val_accuracy=best_individual_acc,
                     		model=model, trainer_classification_cache=new_trainer_classification_cache, training_strategy=training_strategy)
 		# update local variables for evolve function which is based on accuracy.
-		self.accuracy = best_current_val_accuracy
-		self.val_loss = best_current_val_loss
-		return best_current_val_accuracy, best_current_val_loss, y_test_predictions, model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent
+		self.accuracy = train_result.curr_individual_acc
+		self.val_loss = train_result.curr_individual_loss
+		return train_result
 
 	def print_genome(self):
 		"""Print out a genome."""

@@ -13,11 +13,12 @@ import os
 import logging
 import seaborn as sns
 from datetime import datetime
-from evolution_utils import DataPerSubject
 from classify import creating_train_test_data, IMG_SIZE
+from evolution_utils import evaluate_model
 
 # Helper: Early stopping.
 early_stopper = EarlyStopping(monitor='val_loss', min_delta=0.1, patience=2, verbose=0, mode='auto')
+FIXED_NB_CLASSES = 2
 
 
 class TrainClassificationCache:
@@ -25,43 +26,14 @@ class TrainClassificationCache:
         self.nb_classes = None
         self.batch_size = None
         self.input_shape = None
-        self.x_train = None
-        self.x_test = None
-        self.x_test = None
-        self.y_train = None
-        self.y_test = None
-        self.x_cong_train = None
-        self.y_cong_train = None
-        self.x_incong_train = None
-        self.y_incong_train = None
-        self.x_cong_test = None
-        self.y_cong_test = None
-        self.x_incong_test = None
-        self.y_incong_test = None
-        self.ratios_training_dataset = None
-        self.ratios_validation_dataset = None
+        self.train_test_data = None
         self.cache_is_empty = True
 
-    def update_classification_cache(self, nb_classes, batch_size, input_shape, x_train, x_test, y_train, y_test,
-                                    x_cong_train, y_cong_train, x_incong_train, y_incong_train, x_cong_test, y_cong_test, x_incong_test, y_incong_test, ratios_training_dataset, ratios_validation_dataset):
+    def update_classification_cache(self, nb_classes, batch_size, input_shape, train_test_data):
         self.nb_classes = nb_classes
         self.batch_size = batch_size
         self.input_shape = input_shape
-        self.x_train = x_train
-        self.x_test = x_test
-        self.x_test = x_test
-        self.y_train = y_train
-        self.y_test = y_test
-        self.x_cong_test = x_cong_test
-        self.y_cong_test = y_cong_test
-        self.x_incong_test = x_incong_test
-        self.y_incong_test = y_incong_test
-        self.x_cong_train = x_cong_train
-        self.y_cong_train = y_cong_train
-        self.x_incong_train = x_incong_train
-        self.y_incong_train = y_incong_train
-        self.ratios_training_dataset = ratios_training_dataset
-        self.ratios_validation_dataset = ratios_validation_dataset
+        self.train_test_data = train_test_data
         self.cache_is_empty = False
 
 
@@ -151,7 +123,7 @@ def compile_model_cnn(genome, nb_classes, input_shape):
     bce = losses.BinaryCrossentropy(reduction='none')
     model.compile(loss=bce,
                   optimizer=optimizer,
-                  metrics=['accuracy'])
+                  metrics=["accuracy"])
 
     return model
 
@@ -180,30 +152,14 @@ def train_and_score(genome, dataset, mode, equate, path, batch_size, epochs, deb
                     trainer_classification_cache, model=None, training_strategy=None):
     logging.info("Preparing stimuli")
     input_shape = (IMG_SIZE, IMG_SIZE, 3)#RGB
-    nb_classes = 2
+    nb_classes = FIXED_NB_CLASSES
     if dataset == 'size_count':
         if not trainer_classification_cache.cache_is_empty:
-            x_train, y_train, x_test, y_test, x_cong_train, y_cong_train, x_incong_train, y_incong_train, x_cong_test, y_cong_test, x_incong_test, y_incong_test, ratios_training_dataset, ratios_validation_dataset = trainer_classification_cache.x_train, \
-                                                                                                                                                            trainer_classification_cache.y_train, \
-                                                                                                                                                            trainer_classification_cache.x_test, \
-                                                                                                                                                            trainer_classification_cache.y_test, \
-                                                                                                                                                            trainer_classification_cache.x_cong_train, \
-                                                                                                                                                            trainer_classification_cache.y_cong_train, \
-                                                                                                                                                            trainer_classification_cache.x_incong_train, \
-                                                                                                                                                            trainer_classification_cache.y_incong_train, \
-                                                                                                                                                            trainer_classification_cache.x_cong_test, \
-                                                                                                                                                            trainer_classification_cache.y_cong_test, \
-                                                                                                                                                            trainer_classification_cache.x_incong_test, \
-                                                                                                                                                            trainer_classification_cache.y_incong_test, \
-                                                                                                                                                            trainer_classification_cache.ratios_training_dataset, \
-                                                                                                                                                            trainer_classification_cache.ratios_validation_dataset
+            train_test_data = trainer_classification_cache.train_test_data
         else:
-            (x_train, y_train), (x_test, y_test), (x_cong_train, y_cong_train), (x_incong_train, y_incong_train), (x_cong_test, y_cong_test), (x_incong_test, y_incong_test), ratios_training_dataset, ratios_validation_dataset = creating_train_test_data(
+            train_test_data = creating_train_test_data(
                 dir=path, stimuli_type="katzin", mode=mode, nb_classes=nb_classes)
-            trainer_classification_cache.update_classification_cache(nb_classes, batch_size, input_shape, x_train,
-                                                                     x_test, y_train, y_test, x_cong_train, y_cong_train,
-                                                                     x_incong_train, y_incong_train, x_cong_test, y_cong_test,
-                                                                     x_incong_test, y_incong_test, ratios_training_dataset, ratios_validation_dataset)
+            trainer_classification_cache.update_classification_cache(nb_classes, batch_size, input_shape, train_test_data)
 
     if not model:
         logging.info("*********** Creating a new Keras model for individual %s ***********" % genome.u_ID)
@@ -222,173 +178,54 @@ def train_and_score(genome, dataset, mode, equate, path, batch_size, epochs, deb
 
     history = LossHistory()
 
-    history = model.fit(x_train, y_train,
+    history = model.fit(train_test_data.x_train, train_test_data.y_train,
                         batch_size=batch_size,
                         epochs=epochs,
                         verbose=1,
-                        validation_data=(x_test, y_test),
+                        validation_data=(train_test_data.x_test, train_test_data.y_test),
                         callbacks=[history,
                                    early_stopper])  # using early stopping so no real limit - don't want to waste time on horrible architectures
-
-    score = model.evaluate(x=x_test, y=y_test, batch_size=batch_size, verbose=0)
-
-    # taking the last epocj result to be kept ( and not all the loss and accuracies from all epochs, since the last epoch is the best)
-    training_accuracy = history.history["accuracy"][-1]
-    validation_accuracy = history.history["val_accuracy"][-1]
-    training_loss = history.history["loss"][-1]
-    validation_loss = history.history["val_loss"][-1]
-
-    # evaluate training congruency
-    training_score_congruent = model.evaluate(x=x_cong_train, y=y_cong_train, batch_size=batch_size, verbose=0)
-    training_score_incongruent = model.evaluate(x=x_incong_train, y=y_incong_train, batch_size=batch_size, verbose=0)
-
-    training_accuracy_congruent = training_score_congruent[1]
-    training_accuracy_incongruent = training_score_incongruent[1]
-    training_loss_congruent = training_score_congruent[0]
-    training_loss_incongruent = training_score_incongruent[0]
-
-    # evaluate validation congruency
-    validation_score_congruent = model.evaluate(x=x_cong_test, y=y_cong_test, batch_size=batch_size, verbose=0)
-    validation_score_incongruent = model.evaluate(x=x_incong_test, y=y_incong_test, batch_size=batch_size, verbose=0)
-
-    validation_accuracy_congruent = validation_score_congruent[1]
-    validation_accuracy_incongruent = validation_score_incongruent[1]
-    validation_loss_congruent = validation_score_congruent[0]
-    validation_loss_incongruent = validation_score_incongruent[0]
-
-    training_congruency_result = {"training_accuracy_congruent": training_accuracy_congruent,
-                                  "training_accuracy_incongruent": training_accuracy_incongruent,
-                                  "training_loss_congruent": training_loss_congruent,
-                                  "training_loss_incongruent": training_loss_incongruent}
-    validation_congruency_result = {"validation_accuracy_congruent": validation_accuracy_congruent,
-                                    "validation_accuracy_incongruent": validation_accuracy_incongruent,
-                                    "validation_loss_congruent": validation_loss_congruent,
-                                    "validation_loss_incongruent": validation_loss_incongruent}
-
-    ratio_results = {}
-    for ratio in ratios_validation_dataset:
-        training_cong_touple = ratios_validation_dataset[ratio][0]
-        training_incong_touple = ratios_validation_dataset[ratio][1]
-        x_ratio_cong_train = training_cong_touple[0]
-        y_ratio_cong_train = training_cong_touple[1]
-        x_ratio_incong_train = training_incong_touple[0]
-        y_ratio_incong_train = training_incong_touple[1]
-
-        validation_cong_touple = ratios_validation_dataset[ratio][0]
-        validation_incong_touple = ratios_validation_dataset[ratio][1]
-        x_ratio_cong_test = validation_cong_touple[0]
-        y_ratio_cong_test = validation_cong_touple[1]
-        x_ratio_incong_test = validation_incong_touple[0]
-        y_ratio_incong_test = validation_incong_touple[1]
-
-        training_score_ratio_congruent = model.evaluate(x=x_ratio_cong_train, y=y_ratio_cong_train, batch_size=batch_size, verbose=0)
-        training_score_ratio_incongruent = model.evaluate(x=x_ratio_incong_train, y=y_ratio_incong_train, batch_size=batch_size, verbose=0)
-
-        vaildation_score_ratio_congruent = model.evaluate(x=x_ratio_cong_test, y=y_ratio_cong_test, batch_size=batch_size, verbose=0)
-        vaildation_score_ratio_incongruent = model.evaluate(x=x_ratio_incong_test, y=y_ratio_incong_test, batch_size=batch_size, verbose=0)
-
-        ratio_training_accuracy_congruent = training_score_ratio_congruent[1]
-        ratio_training_accuracy_incongruent = training_score_ratio_incongruent[1]
-        ratio_training_loss_congruent = training_score_ratio_congruent[0]
-        ratio_training_loss_incongruent = training_score_ratio_incongruent[0]
-
-        ratio_validation_accuracy_congruent = vaildation_score_ratio_congruent[1]
-        ratio_validation_accuracy_incongruent = vaildation_score_ratio_incongruent[1]
-        ratio_validation_loss_congruent = vaildation_score_ratio_congruent[0]
-        ratio_validation_loss_incongruent = vaildation_score_ratio_incongruent[0]
-        ratio_results.update({ratio: [{"ratio_training_accuracy_congruent": ratio_training_accuracy_congruent},
-                                      {"ratio_training_accuracy_incongruent": ratio_training_accuracy_incongruent},
-                                      {"ratio_training_loss_congruent": ratio_training_loss_congruent},
-                                      {"ratio_training_loss_incongruent": ratio_training_loss_incongruent},
-                                      {"ratio_validation_accuracy_congruent": ratio_validation_accuracy_congruent},
-                                      {"ratio_validation_accuracy_incongruent": ratio_validation_accuracy_incongruent},
-                                      {"ratio_validation_loss_congruent": ratio_validation_loss_congruent},
-                                      {"ratio_validation_loss_incongruent": ratio_validation_loss_incongruent}]})
-
-    data_per_subject = DataPerSubject(genome.u_ID,
-                                      training_accuracy,
-                                      validation_accuracy,
-                                      training_loss,
-                                      validation_loss,
-                                      training_congruency_result,
-                                      validation_congruency_result,
-                                      ratio_results,
-                                      genome.geneparam['nb_layers'],
-                                      genome.nb_neurons(),
-                                      genome.geneparam['activation'],
-                                      genome.geneparam['optimizer'])
-
-    training_set_size = len(x_train)
-    validation_set_size = len(x_test)
-    validation_set_size_congruent = len(x_cong_test)
-
-    # saving the results of each prediction
-    y_test_prediction = model.predict(x=x_test, batch_size=batch_size, verbose=0)
-
-    # fixing the prediction result to be 0 and 1 and not float thresholds.
-    y_test_corrected = []
-    for i in range(len(y_test_prediction)):
-        if y_test_prediction[i][0] > 0.5:
-            left_stimulus_result = 1
-            right_stimulus_result = 0
-        else:
-            left_stimulus_result = 0
-            right_stimulus_result = 1
-        y_test_corrected.append(np.array([left_stimulus_result, right_stimulus_result]))
-
-    best_current_val_loss = round(score[0], 3)
-    best_current_val_accuracy = round(score[1], 3)
-    print('Best current test loss from all epochs:',
-          best_current_val_loss)  # takes the minimum loss from all the epochs
-    print('Best current test accuracy from all epochs based on minimal loss:',
-          best_current_val_accuracy)  # taking the accuracy of the minimal loss above.
+    train_result = evaluate_model(genome=genome, model=model, history=history, train_test_data=train_test_data, batch_size=batch_size)
 
     ############################################################################################################################
-    # Saving the best model from all individuals and deleting the unecessary ones, but will return the current individual result.
+    # Saving the model from all individuals and deleting the unnecessary ones, but will return the current individual result.
     ############################################################################################################################
-    # we save the model only if the accuracy is better than what we currently have
-    if max_val_accuracy < best_current_val_accuracy:
-        max_val_accuracy = best_current_val_accuracy
-        min_val_loss = best_current_val_loss
-        # serialize model to JSON
-        model_json = model.to_json()
-        date = datetime.strftime(datetime.now(), '%Y-%m-%d_%H')
-        if mode == 'both':
-            mode_name = 'size'
-        else:
-            mode_name = mode
 
-        # delete old files from today because we have better results:
-        old_models_path = "models" + os.sep + "best_model_{}_mode_{}*.*".format(date, mode, genome.generation, genome.u_ID)
-        for f in glob.glob(old_models_path):
-            os.remove(f)
+    date = datetime.strftime(datetime.now(), '%Y-%m-%d_%H')
+    if mode == 'both':
+        mode_name = 'size'
+    else:
+        mode_name = mode
 
-        filename = ("models" + os.sep + "best_model_{}_mode_{}_equate_{}_gen_{}_individual_{}_acc_{}_loss_{}_layers_{}_neurons_{}_activation_{}_optimizer_{}").format(date, mode_name,
-                                                                                     equate,
-                                                                                     genome.generation,
-                                                                                     genome.u_ID,
-                                                                                     max_val_accuracy,
-                                                                                     min_val_loss,
-                                                                                     genome.geneparam['nb_layers'],
-                                                                                     genome.nb_neurons(),
-                                                                                     genome.geneparam['activation'],
-                                                                                     genome.geneparam['optimizer'])
-        with open(filename + ".json", "w") as json_file:
-            json_file.write(model_json)
-            # serialize weights to HDF5
-            model.save(filename + ".h5")
-            if debug_mode:
-                # this is the list of all the epochs scores of the current generation - for plotting
-                train_loss = history.history["loss"]
-                val_loss = history.history["val_loss"]
-                train_acc = history.history["accuracy"]
-                val_acc = history.history["val_accuracy"]
-            # plot_genome_after_training_on_epochs_is_done(genome, mode_name, epochs, val_acc, val_loss, train_acc, train_loss, date, max_val_accuracy, min_val_loss)
-            # plot_model(model, to_file=file_name+'.png', show_shapes=True, show_layer_names=True)
+    # delete old files of past generations leaving only the current one.
+    old_models_path = "models" + os.sep + "*mode_{}_equate_{}_gen_{}*.*".format(mode, equate, genome.generation-1)
+    for f in glob.glob(old_models_path):
+        os.remove(f)
 
+    filename = ("models" + os.sep + "model_{}_mode_{}_equate_{}_gen_{}_individual_{}_acc_{}_loss_{}_layers_{}_neurons_{}_activation_{}_optimizer_{}").format(date, mode_name,
+                                                                                 equate,
+                                                                                 genome.generation,
+                                                                                 genome.u_ID,
+                                                                                 train_result.curr_individual_acc,
+                                                                                 train_result.curr_individual_loss,
+                                                                                 genome.geneparam['nb_layers'],
+                                                                                 genome.nb_neurons(),
+                                                                                 genome.geneparam['activation'],
+                                                                                 genome.geneparam['optimizer'])
+    ####################################################################################################################################
+    # Save all models not the best ones.
+    # 1. the model's configuration (topology)
+    # 2. the model's weights
+    # 3. the model's optimizer's state (if any)
+    # Thus models can be reinstantiated in the exact same state, without any of the code used for model definition or training.
+    ####################################################################################################################################
+    model.save(filename + ".h5")
     K.clear_session()
-    # getting only the last values
-    return best_current_val_accuracy, best_current_val_loss, y_test_corrected, model, data_per_subject, training_set_size, validation_set_size, validation_set_size_congruent
+    return train_result
+
+
+def append_to_main_test_result(main_train_result, other_stimuli_train_result):
+    pass
 
 
 class LossHistory(Callback):
