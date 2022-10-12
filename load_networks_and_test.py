@@ -3,6 +3,8 @@ from train import creating_train_test_data
 from keras.models import load_model
 import glob
 import os
+import json
+from genome import Genome
 
 
 def load_keras_model_from_h5_file(h5_path):
@@ -11,6 +13,30 @@ def load_keras_model_from_h5_file(h5_path):
     for model_file in model_files:
         loaded_model = load_model(model_file, compile=False)
         loaded_models.update({model_file: loaded_model})
+    return loaded_models
+
+
+def load_models(h5_path):
+    # first load the genome files
+    genomes = []
+    genome_files = glob.glob(h5_path + os.sep + f"genome_*")
+    for genome_file in genome_files:
+        with open(genome_file) as json_file:
+            genome = json.load(json_file)
+            genome_object = Genome(genome['all_possible_genes'],
+                                   genome['geneparam'], genome['u_ID'],
+                                   genome['parents'][0], genome['parents'][1],
+                                   genome['generation'])
+            genomes.append(genome_object)
+    # then load the model files
+    loaded_models = {}
+    genome_id_to_genome = convert_to_dict(genomes)
+    model_files = glob.glob(h5_path + os.sep + f"*.h5")
+    for model_file in model_files:
+        loaded_model = load_model(model_file, compile=False)
+        genome_id = int(extract_genome_id_from_file(model_file))
+        if genome_id in genome_id_to_genome.keys():
+            loaded_models.update({genome_id_to_genome[genome_id]: loaded_model})
     return loaded_models
 
 

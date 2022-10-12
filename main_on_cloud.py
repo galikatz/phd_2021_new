@@ -23,9 +23,10 @@ from evolution_utils import RATIOS
 from datetime import datetime
 import tensorflow as tf
 from train_test_data import TrainGenomeResult
-from load_networks_and_test import get_physical_properties_to_load, load_models_for_genomes
+from load_networks_and_test import get_physical_properties_to_load, load_models
 from classify import creating_train_test_data
 from keras import losses
+import json
 
 MIN_DIFF = 100
 NUM_OF_IMAGES_FILES = 20
@@ -126,7 +127,7 @@ def get_best_genome(genomes):
 def generate(generations, generation_index, population, all_possible_genes, dataset, mode, mode_th, images_dir,
 			 stopping_th, batch_size, epochs, debug_mode, congruency, equate, savedir, already_switched,
 			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=False, running_on_cloud=False,
-			 training_strategy=None, h5_path=None):
+			 training_strategy=None, h5_path=None, should_train_first=True):
 	"""Generate a network with the genetic algorithm.
 
 	Args:
@@ -136,175 +137,188 @@ def generate(generations, generation_index, population, all_possible_genes, data
 		dataset (str): Dataset to use for training/evaluating
 
 	"""
-	logging.info(
-		"*** Configuration: mode={}, mode_th={}, generations={}, population={}, batch_size={}.epochs={}, stopping_th={})***".format(
-			mode, mode_th, generations, population, batch_size, epochs, stopping_th))
+	if should_train_first:
+		logging.info(
+			"*** Configuration: mode={}, mode_th={}, generations={}, population={}, batch_size={}.epochs={}, stopping_th={})***".format(
+				mode, mode_th, generations, population, batch_size, epochs, stopping_th))
 
-	if not genomes:
-		evolver = Evolver(all_possible_genes)
-		genomes = evolver.create_population(population)
-		if not individual_models:
-			individual_models = {}
-		for genome in genomes:
-			individual_models.update({genome: None})
+		if not genomes:
+			evolver = Evolver(all_possible_genes)
+			genomes = evolver.create_population(population)
+			if not individual_models:
+				individual_models = {}
+			for genome in genomes:
+				individual_models.update({genome: None})
 
-	# Evolve the generation.
-	if mode == 'size-count':
-		actual_mode = 'size'  # we start with size, than switch to counting
-	elif mode == 'colors-count':
-		actual_mode = 'colors'
-	elif mode == 'count-size':
-		actual_mode = 'count'
-	elif mode == 'colors':
-		actual_mode = 'colors'
-	else:
-		actual_mode = mode
+		# Evolve the generation.
+		if mode == 'size-count':
+			actual_mode = 'size'  # we start with size, than switch to counting
+		elif mode == 'colors-count':
+			actual_mode = 'colors'
+		elif mode == 'count-size':
+			actual_mode = 'count'
+		elif mode == 'colors':
+			actual_mode = 'colors'
+		else:
+			actual_mode = mode
 
-	dataframe_list_of_results = []
+		dataframe_list_of_results = []
 
-	########################
-	# loop over generations
-	# ######################
-	start_time = time.time()
-	i = 0
-	avg_accuracy = None
-	best_accuracy = None
-	best_loss = None
-	for i in range(generation_index, generations + 1):
-		# Every new generation we create new stimuli, if there isn't we will modulu the generation number
-		images_dir_per_gen = images_dir + "_" + str(i)
-		if not os.path.isdir(images_dir_per_gen):
-			images_dir_per_gen = images_dir + "_" + str(i % NUM_OF_IMAGES_FILES)
-		if not running_on_cloud:
-			creating_images_for_current_generation(images_dir_per_gen, images_dir, i, should_delete_stimuli, congruency,
-												   equate, savedir, actual_mode, generations)
-		balance(images_dir_per_gen)
-		print_genomes(genomes)
-		# Train and Get the best accuracy for this generation from all individuals.
-		# if there is no model existing for this genome it will create one.
-		train_genome_result = train_genomes(
-			genomes, individual_models, dataset, actual_mode, equate, images_dir_per_gen, batch_size, epochs,
-			debug_mode,
-			training_strategy)
+		########################
+		# loop over generations
+		# ######################
+		start_time = time.time()
+		i = 0
+		avg_accuracy = None
+		best_accuracy = None
+		best_loss = None
+		for i in range(generation_index, generations + 1):
+			# Every new generation we create new stimuli, if there isn't we will modulu the generation number
+			images_dir_per_gen = images_dir + "_" + str(i)
+			if not os.path.isdir(images_dir_per_gen):
+				images_dir_per_gen = images_dir + "_" + str(i % NUM_OF_IMAGES_FILES)
+			if not running_on_cloud:
+				creating_images_for_current_generation(images_dir_per_gen, images_dir, i, should_delete_stimuli, congruency,
+													   equate, savedir, actual_mode, generations)
+			balance(images_dir_per_gen)
+			print_genomes(genomes)
+			# Train and Get the best accuracy for this generation from all individuals.
+			# if there is no model existing for this genome it will create one.
+			train_genome_result = train_genomes(
+				genomes, individual_models, dataset, actual_mode, equate, images_dir_per_gen, batch_size, epochs,
+				debug_mode,
+				training_strategy)
 
-		avg_accuracy = train_genome_result.avg_accuracy
-		best_accuracy = train_genome_result.best_individual_acc
-		best_loss = train_genome_result.best_individual_loss
+			avg_accuracy = train_genome_result.avg_accuracy
+			best_accuracy = train_genome_result.best_individual_acc
+			best_loss = train_genome_result.best_individual_loss
 
-		if (mode != "size-count" and mode != "count-size" and mode != "colors-count") and avg_accuracy >= stopping_th:
-			logging.info("Done training! average_accuracy is %s" % str(avg_accuracy))
+			if (mode != "size-count" and mode != "count-size" and mode != "colors-count") and avg_accuracy >= stopping_th:
+				logging.info("Done training! average_accuracy is %s" % str(avg_accuracy))
+				dataframe_list_of_results.append(
+					accumulate_data(i, population, train_genome_result.data_all_subjects, mode, equate, train_genome_result.training_set_size,
+									train_genome_result.validation_set_size, train_genome_result.validation_set_size_congruent))
+				break
+
+			if mode == "size-count" or mode == "colors-count" or mode == "count-size":  # this is for the first time before the switch
+				if avg_accuracy >= mode_th:
+					if avg_accuracy >= stopping_th:
+						if already_switched:
+							logging.info("Done training! average_accuracy is %s" % str(avg_accuracy))
+							dataframe_list_of_results.append(
+								accumulate_data(i, population, train_genome_result.data_all_subjects, mode, equate, train_genome_result.training_set_size,
+												train_genome_result.validation_set_size, train_genome_result.validation_set_size_congruent))
+							break
+
+					if not already_switched:
+						logging.info('********** SWITCHING TO 2nd task, STILL IN GENERATION %s, ACCURACY: %s **********' % (
+							str(i), str(best_accuracy)))
+						if mode == "size-count" or mode == 'colors-count':
+							actual_mode = 'count'
+						elif mode == "count-size":
+							actual_mode = 'size'
+
+						# we have to reset the accuracy before training a new task.
+						for genome in genomes:
+							genome.accuracy = 0.0
+							genome.val_loss = 1.0
+						already_switched = True
+
+					# now train again, this time for counting:
+					train_genome_result = train_genomes(
+							genomes, individual_models, dataset, actual_mode, equate, images_dir_per_gen, batch_size,
+							epochs,
+							debug_mode, training_strategy)
+
+					avg_accuracy = train_genome_result.avg_accuracy
+					best_accuracy = train_genome_result.best_individual_acc
+					best_loss = train_genome_result.best_individual_loss
+
+			# Print out the average accuracy each generation.
+			logging.info("Generation avg accuracy: %.2f%%" % (avg_accuracy * 100))
+			logging.info("Generation best accuracy: %.2f%% and loss: %.2f%%" % (best_accuracy * 100, best_loss))
+			logging.info('-' * 80)  # -----------
+
+			# Evolve, except on the last iteration.
+			if i != generations:
+				logging.info("Evolving! - mutation and recombination")
+				genomes = evolver.evolve(genomes)
+
+			# create data for analysis per generation
 			dataframe_list_of_results.append(
-				accumulate_data(i, population, train_genome_result.data_all_subjects, mode, equate, train_genome_result.training_set_size,
-								train_genome_result.validation_set_size, train_genome_result.validation_set_size_congruent))
-			break
+				accumulate_data(i, population, train_genome_result.data_all_subjects, mode, equate, train_genome_result.training_set_size, train_genome_result.validation_set_size,
+								train_genome_result.validation_set_size_congruent))
 
-		if mode == "size-count" or mode == "colors-count" or mode == "count-size":  # this is for the first time before the switch
-			if avg_accuracy >= mode_th:
-				if avg_accuracy >= stopping_th:
-					if already_switched:
-						logging.info("Done training! average_accuracy is %s" % str(avg_accuracy))
-						dataframe_list_of_results.append(
-							accumulate_data(i, population, train_genome_result.data_all_subjects, mode, equate, train_genome_result.training_set_size,
-											train_genome_result.validation_set_size, train_genome_result.validation_set_size_congruent))
-						break
+		logging.info("************ End of generations loop - evolution is over, avg accuracy: %.2f%%, best accuracy: %.2f%% and loss: %.2f%% **************" % (
+				avg_accuracy * 100, best_accuracy * 100, best_loss))
+		# Sort our final population according to performance.
+		genomes = sorted(genomes, key=lambda x: x.accuracy, reverse=True)
 
-				if not already_switched:
-					logging.info('********** SWITCHING TO 2nd task, STILL IN GENERATION %s, ACCURACY: %s **********' % (
-						str(i), str(best_accuracy)))
-					if mode == "size-count" or mode == 'colors-count':
-						actual_mode = 'count'
-					elif mode == "count-size":
-						actual_mode = 'size'
+		# Print out the top 5 networks/genomes.
+		logging.info("Top 5 networks are:")
+		print_genomes(genomes[:5])
 
-					# we have to reset the accuracy before training a new task.
-					for genome in genomes:
-						genome.accuracy = 0.0
-						genome.val_loss = 1.0
-					already_switched = True
+		# creating result csvs:
+		logging.info("Creating results csvs")
+		total_time = (time.time() - start_time) / 60
+		now_str = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+		filename = "Results:%s_Mode:%s_Generations:%s_Population:%s_Equate:%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes" % (
+		now_str, mode, str(i), str(population), str(equate), str(epochs), avg_accuracy, str(round(total_time, 3)))
+		filename = filename.replace(":", "_") + ".csv"
+		concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, filename)
+		#######################
+		# save genomes to file
+		#######################
+		for genome in genomes:
+			with open("models" + os.sep + "genome_" + str(genome.u_ID) + '.json', 'w') as f:
+				json.dump(genome.__dict__, f)
 
-				# now train again, this time for counting:
-				train_genome_result = train_genomes(
-						genomes, individual_models, dataset, actual_mode, equate, images_dir_per_gen, batch_size,
-						epochs,
-						debug_mode, training_strategy)
-
-				avg_accuracy = train_genome_result.avg_accuracy
-				best_accuracy = train_genome_result.best_individual_acc
-				best_loss = train_genome_result.best_individual_loss
-
-		# Print out the average accuracy each generation.
-		logging.info("Generation avg accuracy: %.2f%%" % (avg_accuracy * 100))
-		logging.info("Generation best accuracy: %.2f%% and loss: %.2f%%" % (best_accuracy * 100, best_loss))
-		logging.info('-' * 80)  # -----------
-
-		# Evolve, except on the last iteration.
-		if i != generations:
-			logging.info("Evolving! - mutation and recombination")
-			genomes = evolver.evolve(genomes)
-
-		# create data for analysis per generation
-		dataframe_list_of_results.append(
-			accumulate_data(i, population, train_genome_result.data_all_subjects, mode, equate, train_genome_result.training_set_size, train_genome_result.validation_set_size,
-							train_genome_result.validation_set_size_congruent))
-
-	logging.info("************ End of generations loop - evolution is over, avg accuracy: %.2f%%, best accuracy: %.2f%% and loss: %.2f%% **************" % (
-			avg_accuracy * 100, best_accuracy * 100, best_loss))
-	# Sort our final population according to performance.
-	genomes = sorted(genomes, key=lambda x: x.accuracy, reverse=True)
-
-	# Print out the top 5 networks/genomes.
-	logging.info("Top 5 networks are:")
-	print_genomes(genomes[:5])
-
-	# creating result csvs:
-	logging.info("Creating results csvs")
-	total_time = (time.time() - start_time) / 60
-	now_str = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
-	filename = "Results:%s_Mode:%s_Generations:%s_Population:%s_Equate:%s_Epochs:%s_AvgAccuracy:%.2f%%_Time:%s_minutes" % (
-	now_str, mode, str(i), str(population), str(equate), str(epochs), avg_accuracy, str(round(total_time, 3)))
-	filename = filename.replace(":", "_") + ".csv"
-	concat_dataframes_into_raw_data_csv_cross_generations(dataframe_list_of_results, filename)
-	logging.info(f"Done training! took {total_time} minutes.")
+		logging.info(f"Done training! took {total_time} minutes.")
 
 	###############################################################
 	# Testing on different stimuli only once when training is over!
 	###############################################################
 
-	logging.info("##########  Loading models %s #########")
-	models_data = load_models_for_genomes(genomes, h5_path)
+	logging.info("##########  Testing Loaded models %s #########")
+	testing_loaded_models(h5_path, images_dir, equate, mode, population, batch_size)
 
+
+def testing_loaded_models(h5_path, images_dir, equate, mode, population, batch_size):
+	models_data = load_models(h5_path)
 	list_of_stimuli_data = get_physical_properties_to_load(images_dir, equate)
 	for stimuli_data in list_of_stimuli_data:
-
 		new_train_test_data = creating_train_test_data(dir=stimuli_data.path, stimuli_type="katzin", mode=mode, nb_classes=train.FIXED_NB_CLASSES)
-
 		avg_tested_acc = 0
 		avg_tested_loss = 0
 		test_dataframe_list_of_results = []
 		test_data_all_subjects = []
-		for genome in models_data:
-			logging.info("##########  Testing model that was trained on equate_%s for genome: %s on %s #########" % (equate, str(genome.u_ID), stimuli_data.equate))
+		for loaded_genome in models_data:
+			logging.info("##########  Testing model that was trained on equate_%s for genome: %s on %s #########" % (
+			equate, str(loaded_genome.u_ID), stimuli_data.equate))
 
-			optimizer = genome.geneparam['optimizer']
+			optimizer = loaded_genome.geneparam['optimizer']
 
-			model = models_data[genome]
+			model = models_data[loaded_genome]
 			bce = losses.BinaryCrossentropy(reduction='none')
 			model.compile(loss=bce, optimizer=optimizer, metrics=["accuracy"])
 
-			test_genome_result = evaluate_model(genome=genome, model=model, history=None, train_test_data=new_train_test_data, batch_size=batch_size)
+			test_genome_result = evaluate_model(genome=loaded_genome, model=model, history=None,
+												train_test_data=new_train_test_data, batch_size=batch_size)
 			test_data_all_subjects.append(test_genome_result.data_per_subject)
 
 			avg_tested_acc += test_genome_result.curr_individual_acc
 			avg_tested_loss = avg_tested_loss + test_genome_result.curr_individual_loss
-		test_dataframe_list_of_results.append(accumulate_data(i, population, DataAllSubjects(test_data_all_subjects), mode, equate,
+		test_dataframe_list_of_results.append(
+			accumulate_data(loaded_genome.generation, population, DataAllSubjects(test_data_all_subjects), mode, equate,
 							test_genome_result.training_set_size, test_genome_result.validation_set_size,
 							test_genome_result.validation_set_size_congruent))
 		avg_tested_acc /= len(models_data)
 		avg_tested_loss /= len(models_data)
 		test_filename = "Results_%s_Mode_%s_Trained_on_Equate_%s_Tested_on_%s_AvgAccuracy_%.2f%%_AvgLoss_%.2f%%.csv" % (
-		datetime.now().strftime("%d-%m-%Y_%H-%M-%S"), mode, str(equate), stimuli_data.equate.replace("equate", "Equate"), avg_tested_acc, avg_tested_loss)
+			datetime.now().strftime("%d-%m-%Y_%H-%M-%S"), mode, str(equate),
+			stimuli_data.equate.replace("equate", "Equate"), avg_tested_acc, avg_tested_loss)
 		concat_dataframes_into_raw_data_csv_cross_generations(test_dataframe_list_of_results, test_filename)
-		logging.info(f"Done Testing individuals trained on Equate_%s tested on %s !" %(equate, stimuli_data.equate))
+		logging.info(f"Done Testing individuals trained on Equate_%s tested on %s !" % (equate, stimuli_data.equate))
 
 
 def accumulate_data(curr_gen, population, data_from_all_subjects, mode, equate, training_set_size, validation_set_size,
@@ -628,7 +642,7 @@ def main(args):
 			 batch_size=batch_size, epochs=args.epochs, debug_mode=args.debug, congruency=args.congruency,
 			 equate=args.equate, savedir=args.savedir, already_switched=False,
 			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=args.should_delete_stimuli,
-			 running_on_cloud=args.running_on_cloud, training_strategy=training_strategy, h5_path=args.h5_path)
+			 running_on_cloud=args.running_on_cloud, training_strategy=training_strategy, h5_path=args.h5_path, should_train_first=args.should_train_first)
 
 
 def str2bool(value):
@@ -667,6 +681,6 @@ if __name__ == '__main__':
 	parser.add_argument('--strategy', dest='strategy', type=str, required=False, help='Running on cloud GPU/TPU/CPU',
 						default="CPU")
 	parser.add_argument('--h5_path', dest='h5_path', type=str, required=False, help='h5_path',default="/Users/gali.k/phd/phd_2021/models")
-
+	parser.add_argument('--should_train_first', dest='should_train_first', type=str2bool, required=False, default=True, help='should train first or skip to test')
 	args = parser.parse_args()
 	main(args)
