@@ -5,19 +5,19 @@ import glob
 import os
 
 
-def load_keras_model_from_h5_file(hd5_path):
+def load_keras_model_from_h5_file(h5_path):
     loaded_models = {}
-    model_files = glob.glob(hd5_path + os.sep + f"*.h5")
+    model_files = glob.glob(h5_path + os.sep + f"*.h5")
     for model_file in model_files:
         loaded_model = load_model(model_file, compile=False)
         loaded_models.update({model_file: loaded_model})
     return loaded_models
 
 
-def load_models_for_genomes(genomes, hd5_path):
+def load_models_for_genomes(genomes, h5_path):
     loaded_models = {}
     genome_id_to_genome = convert_to_dict(genomes)
-    model_files = glob.glob(hd5_path + os.sep + f"*.h5")
+    model_files = glob.glob(h5_path + os.sep + f"*.h5")
     for model_file in model_files:
         loaded_model = load_model(model_file, compile=False)
         genome_id = int(extract_genome_id_from_file(model_file))
@@ -53,8 +53,8 @@ class StimuliData:
 
 
 if __name__ == '__main__':
-    hd5_path = "/Users/gali.k/phd/phd_2021/results/equate_1/size/best_model_2022-05-19_14_mode_size_equate_1_gen_5_individual_90_acc_0.983_loss_0.435_layers_3_neurons_[128, 32, 32]_activation_linear_optimizer_nadam.h5"
-    loaded_model = load_keras_model_from_h5_file(hd5_path)
+    h5_path = "/Users/gali.k/phd/phd_2021/results/equate_1/size/best_model_2022-05-19_14_mode_size_equate_1_gen_5_individual_90_acc_0.983_loss_0.435_layers_3_neurons_[128, 32, 32]_activation_linear_optimizer_nadam.h5"
+    loaded_model = load_keras_model_from_h5_file(h5_path)
     list_of_stimuli_data = get_physical_properties_to_load("size", "equate_1")
 
     mode = "size"

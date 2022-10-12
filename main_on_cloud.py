@@ -126,7 +126,7 @@ def get_best_genome(genomes):
 def generate(generations, generation_index, population, all_possible_genes, dataset, mode, mode_th, images_dir,
 			 stopping_th, batch_size, epochs, debug_mode, congruency, equate, savedir, already_switched,
 			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=False, running_on_cloud=False,
-			 training_strategy=None, hd5_path=None):
+			 training_strategy=None, h5_path=None):
 	"""Generate a network with the genetic algorithm.
 
 	Args:
@@ -271,7 +271,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	###############################################################
 
 	logging.info("##########  Loading models %s #########")
-	models_data = load_models_for_genomes(genomes, hd5_path)
+	models_data = load_models_for_genomes(genomes, h5_path)
 
 	list_of_stimuli_data = get_physical_properties_to_load(images_dir, equate)
 	for stimuli_data in list_of_stimuli_data:
@@ -628,7 +628,7 @@ def main(args):
 			 batch_size=batch_size, epochs=args.epochs, debug_mode=args.debug, congruency=args.congruency,
 			 equate=args.equate, savedir=args.savedir, already_switched=False,
 			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=args.should_delete_stimuli,
-			 running_on_cloud=args.running_on_cloud, training_strategy=training_strategy, hd5_path=args.hd5_path)
+			 running_on_cloud=args.running_on_cloud, training_strategy=training_strategy, h5_path=args.h5_path)
 
 
 def str2bool(value):
@@ -666,7 +666,7 @@ if __name__ == '__main__':
 						help='running on a cloud or locally', default=False)
 	parser.add_argument('--strategy', dest='strategy', type=str, required=False, help='Running on cloud GPU/TPU/CPU',
 						default="CPU")
-	parser.add_argument('--hd5_path', dest='hd5_path', type=str, required=False, help='hd5_path',default="/Users/gali.k/phd/phd_2021/models")
+	parser.add_argument('--h5_path', dest='h5_path', type=str, required=False, help='h5_path',default="/Users/gali.k/phd/phd_2021/models")
 
 	args = parser.parse_args()
 	main(args)
