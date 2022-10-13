@@ -287,9 +287,9 @@ def testing_loaded_models(h5_path, images_dir, equate, mode, population, batch_s
 	models_data = load_models(h5_path)
 	list_of_stimuli_data = get_physical_properties_to_load(images_dir, equate)
 	for stimuli_data in list_of_stimuli_data:
-		if mode == 'size-count' or 'color-count':
+		if mode == 'size-count' or  mode == 'color-count':
 			mode_to_classify = 'count'
-		elif 'count-size':
+		elif  mode == 'count-size':
 			mode_to_classify = 'size'
 		else:
 			mode_to_classify = mode
