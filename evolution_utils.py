@@ -147,13 +147,13 @@ def create_evolution_analysis_per_task_per_equate_csv(generation,
 			   'Ratio 75 Incongruent Validation Loss',
 
 			   'Ratio 86 Congruent Training Accuracy',
-			   'Ratio 86 Congruent Training Loss',
 			   'Ratio 86 Incongruent Training Accuracy',
+			   'Ratio 86 Congruent Training Loss',
 			   'Ratio 86 Incongruent Training Loss',
 
 			   'Ratio 86 Congruent Validation Accuracy',
-			   'Ratio 86 Congruent Validation Loss',
 			   'Ratio 86 Incongruent Validation Accuracy',
+			   'Ratio 86 Congruent Validation Loss',
 			   'Ratio 86 Incongruent Validation Loss',
 
 			   'Layers',
