@@ -1,5 +1,5 @@
-# install.packages(c("ggplot2", "ggpubr", "tidyverse", "broom", "AICcmodavg", "afex"))
-#install.packages(c("afex"))
+# install.packages(c("ggplot2", "ggpubr", "tidyverse", "broom", "AICcmodavg", "afex", "emmeans"))
+#install.packages(c("emmeans"))
 library(ggplot2)
 library(ggpubr)
 library(tidyverse)
@@ -7,6 +7,7 @@ library(broom)
 library(rstatix)
 library(dplyr)
 library(afex)
+library(emmeans)
 master <- read.csv("/Users/gali.k/phd/phd_2021/data_analysis/analysis/anova_df_for_R_new.csv", header = TRUE,
                       colClasses = c("numeric", "factor", "factor", "factor", "factor", "factor", "factor", "numeric"))
 summary(master)
@@ -21,3 +22,14 @@ summary(master)
 
 
 #emmeans
+# emmeans(fit, pairwise ~ Task)
+
+# emmip(fit,  Train ~ Test | Task)
+
+# emmip(fit,  Congruency ~ Test | Task)
+
+emmip(fit, Congruency  ~  Ratio | Task)
+
+emmip(fit, Congruency  ~  Ratio | Test)
+
+emmip(fit, Congruency  ~  Ratio | Task * Test)
