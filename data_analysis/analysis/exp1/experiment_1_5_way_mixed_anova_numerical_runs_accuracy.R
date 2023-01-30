@@ -9,6 +9,7 @@ library(afex)
 library(emmeans)
 library(effectsize)
 library(ggthemes)
+#Index	UNIQUE_SUBJECT_UID	Task	Train_val	Test_val	Congruity_val	Ratio	Validation Accuracy	Congruity	Train	Test
 master <- read.csv("/Users/gali.k/phd/phd_2021/data_analysis/analysis/exp1/Experiment_1_numerical_final_test_cong_labels_and_controlled.csv", header = TRUE,
                    colClasses = c("numeric", "factor", "factor", "factor", "factor", "factor", "factor", "numeric", "factor", "factor", "factor"))
 summary(master)

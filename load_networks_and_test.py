@@ -64,7 +64,9 @@ def convert_to_dict(list_of_genomes):
     return dict_of_genome_id_to_genome
 
 
-def get_physical_properties_to_load(images_dir, equate):
+def get_physical_properties_to_load(images_dir, equate, test_prev_task=False):
+    if test_prev_task:
+        return [StimuliData(images_dir + "_1", "equate_"+ str(equate))]
     if equate == 1:
         return [StimuliData(images_dir.replace("equate_1", "equate_2") + "_1", "equate_2"), StimuliData(images_dir.replace("equate_1", "equate_3") + "_1", "equate_3")]
     elif equate == 2:

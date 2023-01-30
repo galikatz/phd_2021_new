@@ -34,8 +34,8 @@ def plot_stimuli_histogram(dir):
 
 
 if __name__ == '__main__':
-    path = "/Users/gali.k/phd/phd_2021/stimui" + os.sep
+    path = "/Users/gali.k/phd/phd_2021/stimuli" + os.sep
     plot_stimuli_histogram(path)
 
-    path = "/Users/gali.k/phd/phd_2021/stimui/colors" + os.sep
+    path = "/Users/gali.k/phd/phd_2021/stimuli/colors" + os.sep
     plot_stimuli_histogram(path)

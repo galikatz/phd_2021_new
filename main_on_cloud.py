@@ -127,7 +127,7 @@ def get_best_genome(genomes):
 def generate(generations, generation_index, population, all_possible_genes, dataset, mode, mode_th, images_dir,
 			 stopping_th, batch_size, epochs, debug_mode, congruency, equate, savedir, already_switched,
 			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=False, running_on_cloud=False,
-			 training_strategy=None, h5_path=None, should_train_first=True):
+			 training_strategy=None, h5_path=None, should_train_first=True, test_prev_task=False):
 	"""Generate a network with the genetic algorithm.
 
 	Args:
@@ -280,16 +280,16 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	###############################################################
 
 	logging.info("##########  Testing Loaded models %s #########")
-	testing_loaded_models(h5_path, images_dir, equate, mode, population, batch_size)
+	testing_loaded_models(h5_path, images_dir, equate, mode, population, batch_size, test_prev_task)
 
 
-def testing_loaded_models(h5_path, images_dir, equate, mode, population, batch_size):
+def testing_loaded_models(h5_path, images_dir, equate, mode, population, batch_size, test_prev_task):
 	models_data = load_models(h5_path)
-	list_of_stimuli_data = get_physical_properties_to_load(images_dir, equate)
+	list_of_stimuli_data = get_physical_properties_to_load(images_dir, equate, test_prev_task)
 	for stimuli_data in list_of_stimuli_data:
-		if mode == 'size-count' or  mode == 'colors-count':
+		if test_prev_task == False and mode == 'size-count' or  mode == 'colors-count':
 			mode_to_classify = 'count'
-		elif  mode == 'count-size':
+		elif test_prev_task == False and mode == 'count-size':
 			mode_to_classify = 'size'
 		else:
 			mode_to_classify = mode
@@ -610,7 +610,7 @@ def main(args):
 	if dataset == 'size_count':
 		generations = args.gens  # Number of times to evolve the population.
 		all_possible_genes = {
-			'nb_neurons': [16, 32, 64, 128],
+			'nb_neurons': [16, 32, 64, 128 ,256],
 			#  'nb_neurons': [16, 32, 64, 128, 256],
 			'nb_layers': [2, 3, 4, 5],
 			'activation': ['relu', 'elu', 'tanh', 'sigmoid', 'hard_sigmoid', 'softplus', 'linear'],
@@ -648,7 +648,8 @@ def main(args):
 			 batch_size=batch_size, epochs=args.epochs, debug_mode=args.debug, congruency=args.congruency,
 			 equate=args.equate, savedir=args.savedir, already_switched=False,
 			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=args.should_delete_stimuli,
-			 running_on_cloud=args.running_on_cloud, training_strategy=training_strategy, h5_path=args.h5_path, should_train_first=args.should_train_first)
+			 running_on_cloud=args.running_on_cloud, training_strategy=training_strategy, h5_path=args.h5_path,
+			 should_train_first=args.should_train_first, test_prev_task=args.test_prev_task)
 
 
 def str2bool(value):
@@ -688,5 +689,6 @@ if __name__ == '__main__':
 						default="CPU")
 	parser.add_argument('--h5_path', dest='h5_path', type=str, required=False, help='h5_path',default="/Users/gali.k/phd/phd_2021/models")
 	parser.add_argument('--should_train_first', dest='should_train_first', type=str2bool, required=False, default=True, help='should train first or skip to test')
+	parser.add_argument('--test_prev_task', dest='test_prev_task', type=str2bool, required=False, default=False, help='perform final test on the prev task before the switch')
 	args = parser.parse_args()
 	main(args)

@@ -76,6 +76,54 @@ def show_values_on_bars(axs, h_v="v", space=0.4):
         _show_on_single_plot(axs)
 
 
+def compile_multitask_cnn(genome, nb_classes, input_shape):
+    logging.info("********* Creating a new multitask CNN model **********")
+    nb_layers = genome.geneparam['nb_layers']
+    nb_neurons = genome.nb_neurons()
+    activation = genome.geneparam['activation']
+    optimizer = genome.geneparam['optimizer']
+
+    logging.info("Architecture:%s,%s,%s,%d" % (str(nb_neurons), activation, optimizer, nb_layers))
+    from keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dense
+    from keras.models import Model
+
+    # Convolutional layers
+    for i in range(0, len(nb_neurons)):
+        # Need input shape for first layer.
+        if i == 0:
+            x = Conv2D(nb_neurons[i], kernel_size=(3, 3), activation=activation, padding='same',
+                             input_shape=input_shape)
+        else:
+            x = Conv2D(nb_neurons[i], kernel_size=(3, 3), activation=activation)(x)
+
+        if i < 2:  # otherwise we hit zero
+            x = MaxPooling2D(pool_size=(2, 2))(x)
+
+        x = Dropout(0.2)(x)
+
+    x = Flatten()(x)
+    # always use last nb_neurons value for dense layer
+    x = Dense(nb_neurons[len(nb_neurons) - 1], activation=activation)(x)
+    x = Dropout(0.5)(x)
+    # Fully connected layers
+    x = Dense(128, activation='relu')(x)
+
+    # Output layers for task 1
+    task1_output = Dense(nb_classes, activation='softmax', name='task1_output')(x)
+
+    # Output layers for task 2
+    task2_output = Dense(nb_classes, activation='softmax', name='task2_output')(x)
+
+    # Create the model
+    model = Model(inputs=input_shape, outputs=[task1_output, task2_output])
+
+    # Compile the model
+    model.compile(optimizer='adam', loss={'task1_output': 'categorical_crossentropy',
+                                         'task2_output': 'categorical_crossentropy'},
+                  metrics={'task1_output': 'accuracy', 'task2_output': 'accuracy'})
+    return model
+
+
 def compile_model_cnn(genome, nb_classes, input_shape):
     """Compile a sequential model.
 
@@ -98,8 +146,8 @@ def compile_model_cnn(genome, nb_classes, input_shape):
 
     model = Sequential()
 
-    # Add each layer.
-    for i in range(0, len(nb_neurons)):
+    # Add each layer. this len(nb_neurons)) is a simplification, saying we will have only 3 layers (const) and there will not be an evolution on the number of layers.
+    for i in range(0, nb_layers): #len(nb_neurons)
         # Need input shape for first layer.
         if i == 0:
             model.add(Conv2D(nb_neurons[i], kernel_size=(3, 3), activation=activation, padding='same',
@@ -113,6 +161,8 @@ def compile_model_cnn(genome, nb_classes, input_shape):
         model.add(Dropout(0.2))
 
     model.add(Flatten())
+
+    # Fully connected layers
     # always use last nb_neurons value for dense layer
     model.add(Dense(nb_neurons[len(nb_neurons) - 1], activation=activation))
     model.add(Dropout(0.5))
