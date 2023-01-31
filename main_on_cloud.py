@@ -627,7 +627,9 @@ def main(args):
 	# replace nb_neurons with 1 unique value for each layer
 	# 6th value reserved for dense layer
 	nb_neurons = all_possible_genes['nb_neurons']
-	for i in range(1, len(nb_neurons) + 1):
+	max_layers = all_possible_genes['nb_layers'][-1]
+
+	for i in range(1, max_layers + 1):
 		all_possible_genes['nb_neurons_' + str(i)] = nb_neurons
 	# remove old value from dict
 	all_possible_genes.pop('nb_neurons')
