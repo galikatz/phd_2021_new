@@ -293,7 +293,8 @@ def testing_loaded_models(h5_path, images_dir, equate, mode, population, batch_s
 			mode_to_classify = 'size'
 		else:
 			mode_to_classify = mode
-		new_train_test_data = creating_train_test_data(dir=stimuli_data.path, stimuli_type="katzin", mode=mode_to_classify, nb_classes=train.FIXED_NB_CLASSES, one_hot=one_hot)
+		nb_classes = train.ONE_HOT_FIXED_NB_CLASSES if one_hot else train.FIXED_NB_CLASSES
+		new_train_test_data = creating_train_test_data(dir=stimuli_data.path, stimuli_type="katzin", mode=mode_to_classify, nb_classes=nb_classes, one_hot=one_hot)
 		avg_tested_acc = 0
 		avg_tested_loss = 0
 		test_dataframe_list_of_results = []
