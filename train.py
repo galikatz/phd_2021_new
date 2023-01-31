@@ -126,7 +126,7 @@ def compile_multitask_cnn(genome, nb_classes, input_shape):
     return model
 
 
-def compile_model_cnn(genome, nb_classes, input_shape):
+def compile_model_cnn(genome, nb_classes, input_shape, one_hot):
     logging.info("********* Creating a sequential model of new CNN model **********")
 
     nb_layers = genome.geneparam['nb_layers']
@@ -159,11 +159,13 @@ def compile_model_cnn(genome, nb_classes, input_shape):
     model.add(Dense(nb_neurons[len(nb_neurons) - 1], activation=activation))
     model.add(Dropout(0.5))
     model.add(Dense(nb_classes, activation='softmax'))
+    if one_hot:
+        the_loss = losses.CategoricalCrossentropy()
+    else:
+        # BAYESIAN CONVOLUTIONAL NEURAL NETWORKS WITH BERNOULLI APPROXIMATE VARIATIONAL INFERENCE
+        the_loss = losses.BinaryCrossentropy(reduction='none')
 
-    # BAYESIAN CONVOLUTIONAL NEURAL NETWORKS WITH BERNOULLI APPROXIMATE VARIATIONAL INFERENCE
-
-    bce = losses.BinaryCrossentropy(reduction='none')
-    model.compile(loss=bce,
+    model.compile(loss=the_loss,
                   optimizer=optimizer,
                   metrics=["accuracy"])
 
@@ -208,9 +210,9 @@ def train_and_score(genome, dataset, mode, equate, path, batch_size, epochs, deb
         if dataset == 'size_count':
             if training_strategy is not None:
                 with training_strategy.scope():
-                    model = compile_model_cnn(genome, nb_classes, input_shape)
+                    model = compile_model_cnn(genome, nb_classes, input_shape, one_hot)
             else:
-                model = compile_model_cnn(genome, nb_classes, input_shape)
+                model = compile_model_cnn(genome, nb_classes, input_shape, one_hot)
     else:
         logging.info("*********** Using the existing model for individual %s ***********" % genome.u_ID)
 
