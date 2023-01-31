@@ -9,8 +9,6 @@ from __future__ import print_function
 
 import random
 import logging
-import copy
-
 from functools  import reduce
 from operator   import add
 from genome     import Genome
@@ -21,7 +19,7 @@ from allgenomes import AllGenomes
 class Evolver():
 	"""Class that implements genetic algorithm."""
 
-	def __init__(self, all_possible_genes, retain=0.8, random_select=0.1, mutate_chance=0.25):
+	def __init__(self, all_possible_genes, retain=1, random_select=0.1, mutate_chance=0.25):
 		"""Create an optimizer.
 
 		Args:
