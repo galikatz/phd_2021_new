@@ -18,7 +18,8 @@ from evolution_utils import evaluate_model
 
 # Helper: Early stopping.
 early_stopper = EarlyStopping(monitor='val_loss', min_delta=0.1, patience=2, verbose=0, mode='auto')
-FIXED_NB_CLASSES = 2
+FIXED_NB_CLASSES = 2 # left and right sides
+ONE_HOT_FIXED_NB_CLASSES = 11 # for the numbers 0-10. 3 will be represented like this: [0,0,0,1,0,0,0,0,0,0,0]
 
 
 class TrainClassificationCache:
@@ -88,11 +89,12 @@ def compile_multitask_cnn(genome, nb_classes, input_shape):
     from keras.models import Model
 
     # Convolutional layers
+    inputs = Input(input_shape)
     for i in range(0, len(nb_neurons)):
         # Need input shape for first layer.
         if i == 0:
             x = Conv2D(nb_neurons[i], kernel_size=(3, 3), activation=activation, padding='same',
-                             input_shape=input_shape)
+                             input_shape=inputs)
         else:
             x = Conv2D(nb_neurons[i], kernel_size=(3, 3), activation=activation)(x)
 
@@ -109,10 +111,10 @@ def compile_multitask_cnn(genome, nb_classes, input_shape):
     x = Dense(128, activation='relu')(x)
 
     # Output layers for task 1
-    task1_output = Dense(nb_classes, activation='softmax', name='task1_output')(x)
+    task1_output = Dense(nb_classes, activation=activation, name='task1_output')(x)
 
     # Output layers for task 2
-    task2_output = Dense(nb_classes, activation='softmax', name='task2_output')(x)
+    task2_output = Dense(nb_classes, activation=activation, name='task2_output')(x)
 
     # Create the model
     model = Model(inputs=input_shape, outputs=[task1_output, task2_output])
@@ -125,17 +127,7 @@ def compile_multitask_cnn(genome, nb_classes, input_shape):
 
 
 def compile_model_cnn(genome, nb_classes, input_shape):
-    """Compile a sequential model.
-
-	Args:
-		genome (dict): the parameters of the genome
-
-	Returns:
-		a compiled network.
-
-	"""
-    # Get our network parameters.
-    logging.info("********* Creating a new CNN model **********")
+    logging.info("********* Creating a sequential model of new CNN model **********")
 
     nb_layers = genome.geneparam['nb_layers']
     nb_neurons = genome.nb_neurons()
@@ -147,7 +139,7 @@ def compile_model_cnn(genome, nb_classes, input_shape):
     model = Sequential()
 
     # Add each layer. this len(nb_neurons)) is a simplification, saying we will have only 3 layers (const) and there will not be an evolution on the number of layers.
-    for i in range(0, nb_layers): #len(nb_neurons)
+    for i in range(0, len(nb_neurons)): #nb_layers
         # Need input shape for first layer.
         if i == 0:
             model.add(Conv2D(nb_neurons[i], kernel_size=(3, 3), activation=activation, padding='same',
@@ -199,16 +191,15 @@ def plot_genome_after_training_on_epochs_is_done(genome, mode, epochs, val_acc, 
 
 
 def train_and_score(genome, dataset, mode, equate, path, batch_size, epochs, debug_mode, max_val_accuracy,
-                    trainer_classification_cache, model=None, training_strategy=None):
+                    trainer_classification_cache, model=None, training_strategy=None, one_hot=False):
     logging.info("Preparing stimuli")
     input_shape = (IMG_SIZE, IMG_SIZE, 3)#RGB
-    nb_classes = FIXED_NB_CLASSES
+    nb_classes = ONE_HOT_FIXED_NB_CLASSES if one_hot else FIXED_NB_CLASSES
     if dataset == 'size_count':
         if not trainer_classification_cache.cache_is_empty:
             train_test_data = trainer_classification_cache.train_test_data
         else:
-            train_test_data = creating_train_test_data(
-                dir=path, stimuli_type="katzin", mode=mode, nb_classes=nb_classes)
+            train_test_data = creating_train_test_data(dir=path, stimuli_type="katzin", mode=mode, nb_classes=nb_classes, one_hot=one_hot)
             trainer_classification_cache.update_classification_cache(nb_classes, batch_size, input_shape, train_test_data)
 
     if not model:

@@ -39,7 +39,7 @@ logging.basicConfig(
 )
 
 
-def train_genomes(genomes, individuals_models, dataset, mode, equate, path, batch_size, epochs, debug_mode, training_strategy):
+def train_genomes(genomes, individuals_models, dataset, mode, equate, path, batch_size, epochs, debug_mode, training_strategy, one_hot):
 	logging.info("*** Going to train %s individuals ***" % len(genomes))
 	pop_size = len(genomes)
 
@@ -68,11 +68,11 @@ def train_genomes(genomes, individuals_models, dataset, mode, equate, path, batc
 			logging.info(
 				"*** Individual #%s is not in individuals_models, probably after evolution - new offspring ***" % individual_index)
 			train_result = genome.train(dataset, mode, equate, path, batch_size, epochs,
-				debug_mode, best_individual_acc, None, trainer_classification_cache, training_strategy)
+				debug_mode, best_individual_acc, None, trainer_classification_cache, training_strategy, one_hot)
 		else:
 			logging.info("*** Individual #%s already in individuals_models ***" % individual_index)
 			train_result = genome.train(dataset, mode, equate, path, batch_size, epochs,
-				debug_mode, best_individual_acc, individuals_models[genome], trainer_classification_cache, training_strategy)
+				debug_mode, best_individual_acc, individuals_models[genome], trainer_classification_cache, training_strategy, one_hot)
 
 		sum_individual_acc += train_result.curr_individual_acc
 
@@ -127,7 +127,7 @@ def get_best_genome(genomes):
 def generate(generations, generation_index, population, all_possible_genes, dataset, mode, mode_th, images_dir,
 			 stopping_th, batch_size, epochs, debug_mode, congruency, equate, savedir, already_switched,
 			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=False, running_on_cloud=False,
-			 training_strategy=None, h5_path=None, should_train_first=True, test_prev_task=False):
+			 training_strategy=None, h5_path=None, should_train_first=True, test_prev_task=False, one_hot=False):
 	"""Generate a network with the genetic algorithm.
 
 	Args:
@@ -187,7 +187,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 			train_genome_result = train_genomes(
 				genomes, individual_models, dataset, actual_mode, equate, images_dir_per_gen, batch_size, epochs,
 				debug_mode,
-				training_strategy)
+				training_strategy, one_hot)
 
 			avg_accuracy = train_genome_result.avg_accuracy
 			best_accuracy = train_genome_result.best_individual_acc
@@ -228,7 +228,7 @@ def generate(generations, generation_index, population, all_possible_genes, data
 					train_genome_result = train_genomes(
 							genomes, individual_models, dataset, actual_mode, equate, images_dir_per_gen, batch_size,
 							epochs,
-							debug_mode, training_strategy)
+							debug_mode, training_strategy, one_hot)
 
 					avg_accuracy = train_genome_result.avg_accuracy
 					best_accuracy = train_genome_result.best_individual_acc
@@ -280,10 +280,10 @@ def generate(generations, generation_index, population, all_possible_genes, data
 	###############################################################
 
 	logging.info("##########  Testing Loaded models %s #########")
-	testing_loaded_models(h5_path, images_dir, equate, mode, population, batch_size, test_prev_task)
+	testing_loaded_models(h5_path, images_dir, equate, mode, population, batch_size, test_prev_task, one_hot)
 
 
-def testing_loaded_models(h5_path, images_dir, equate, mode, population, batch_size, test_prev_task):
+def testing_loaded_models(h5_path, images_dir, equate, mode, population, batch_size, test_prev_task, one_hot):
 	models_data = load_models(h5_path)
 	list_of_stimuli_data = get_physical_properties_to_load(images_dir, equate, test_prev_task)
 	for stimuli_data in list_of_stimuli_data:
@@ -293,7 +293,7 @@ def testing_loaded_models(h5_path, images_dir, equate, mode, population, batch_s
 			mode_to_classify = 'size'
 		else:
 			mode_to_classify = mode
-		new_train_test_data = creating_train_test_data(dir=stimuli_data.path, stimuli_type="katzin", mode=mode_to_classify, nb_classes=train.FIXED_NB_CLASSES)
+		new_train_test_data = creating_train_test_data(dir=stimuli_data.path, stimuli_type="katzin", mode=mode_to_classify, nb_classes=train.FIXED_NB_CLASSES, one_hot=one_hot)
 		avg_tested_acc = 0
 		avg_tested_loss = 0
 		test_dataframe_list_of_results = []
@@ -610,8 +610,7 @@ def main(args):
 	if dataset == 'size_count':
 		generations = args.gens  # Number of times to evolve the population.
 		all_possible_genes = {
-			'nb_neurons': [16, 32, 64, 128 ,256],
-			#  'nb_neurons': [16, 32, 64, 128, 256],
+			'nb_neurons': [16, 32, 64, 128],#those are the possibilities
 			'nb_layers': [2, 3, 4, 5],
 			'activation': ['relu', 'elu', 'tanh', 'sigmoid', 'hard_sigmoid', 'softplus', 'linear'],
 			'optimizer': ['rmsprop', 'adam', 'sgd', 'adagrad', 'adadelta', 'adamax', 'nadam']
@@ -649,7 +648,7 @@ def main(args):
 			 equate=args.equate, savedir=args.savedir, already_switched=False,
 			 genomes=None, evolver=None, individual_models=None, should_delete_stimuli=args.should_delete_stimuli,
 			 running_on_cloud=args.running_on_cloud, training_strategy=training_strategy, h5_path=args.h5_path,
-			 should_train_first=args.should_train_first, test_prev_task=args.test_prev_task)
+			 should_train_first=args.should_train_first, test_prev_task=args.test_prev_task, one_hot=args.one_hot)
 
 
 def str2bool(value):
@@ -690,5 +689,7 @@ if __name__ == '__main__':
 	parser.add_argument('--h5_path', dest='h5_path', type=str, required=False, help='h5_path',default="/Users/gali.k/phd/phd_2021/models")
 	parser.add_argument('--should_train_first', dest='should_train_first', type=str2bool, required=False, default=True, help='should train first or skip to test')
 	parser.add_argument('--test_prev_task', dest='test_prev_task', type=str2bool, required=False, default=False, help='perform final test on the prev task before the switch')
+	parser.add_argument('--one_hot', dest='one_hot', type=str2bool, required=False, default=False,
+						help='classifies with one hot encoding for the count task')
 	args = parser.parse_args()
 	main(args)

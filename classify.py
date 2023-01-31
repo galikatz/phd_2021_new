@@ -79,7 +79,7 @@ def create_model(x_train, y_train, x_test, y_test):
 	print("Accuracy: %.2f%%" % (scores[1] * 100))
 
 
-def extract_label(file_name, stimuli_type, task):
+def extract_label(file_name, stimuli_type, task, one_hot):
 	if stimuli_type == 'halberda':
 		description = file_name[file_name.rindex('/')+1:file_name.index('.jpg')]
 		labels = description.split('_')
@@ -100,9 +100,9 @@ def extract_label(file_name, stimuli_type, task):
 					classification_label = '1'
 			elif task == 'count':
 				if left_num < right_num:#(left=0, right=1)
-					classification_label = '1'#right is bigger in count
+					classification_label = right_num if one_hot else 1#'1'#right is bigger in count
 				else:
-					classification_label = '0'
+					classification_label = left_num if one_hot else 0#'0'
 			elif task == 'colors':  # Where is Cyan?
 				left_color = labels[7]
 				if left_color == 'c':
@@ -122,9 +122,9 @@ def extract_label(file_name, stimuli_type, task):
 					classification_label = '0'
 			elif task == 'count':
 				if left_num < right_num:  # (left=0, right=1)
-					classification_label = '1'
+					classification_label = right_num if one_hot else 1#'1'
 				else:
-					classification_label = '0'
+					classification_label = left_num if one_hot else 0#'0'
 			elif task == 'colors':  # Where is Cyan?
 				left_color = labels[7]
 				if left_color == 'c':
@@ -138,15 +138,15 @@ def extract_label(file_name, stimuli_type, task):
 #########################################
 # Labeling and creating / switching tasks
 #########################################
-def creating_train_test_data(dir, stimuli_type, mode, nb_classes):
+def creating_train_test_data(dir, stimuli_type, mode, nb_classes, one_hot):
 	logging.info("########## Classifying and labeling accroding to mode %s #########" % mode)
 
 	incong_files = glob.glob(dir + os.sep + 'incong*.jpg')
 	cong_files = glob.glob(dir + os.sep + 'cong*.jpg')
 	logging.info("Got %s incong and %s cong files to train from path %s" % (len(incong_files), len(cong_files), dir))
 	# this is for the first time basically
-	(x_incong_train, x_incong_test, y_incong_train, y_incong_test) = classify_and_split_to_train_test(mode, incong_files, stimuli_type)
-	(x_cong_train, x_cong_test, y_cong_train, y_cong_test) = classify_and_split_to_train_test(mode, cong_files, stimuli_type)
+	(x_incong_train, x_incong_test, y_incong_train, y_incong_test) = classify_and_split_to_train_test(mode, incong_files, stimuli_type, one_hot)
+	(x_cong_train, x_cong_test, y_cong_train, y_cong_test) = classify_and_split_to_train_test(mode, cong_files, stimuli_type, one_hot)
 
 	# main dataset
 	x_train, y_train = create_balanced_incong_cong_train_test(x_incong_train, y_incong_train, x_cong_train, y_cong_train)
@@ -171,8 +171,8 @@ def creating_train_test_data(dir, stimuli_type, mode, nb_classes):
 		ratio_cong_files = glob.glob(dir + os.sep + 'cong' + str(ratio) + '*.jpg')
 		ratio_incong_files = glob.glob(dir + os.sep + 'incong' + str(ratio) + '*.jpg')
 		logging.info("Got ratio: %s cong files: %s to train and incong files: %s to train" % (str(ratio), len(ratio_cong_files), len(ratio_incong_files)))
-		(x_ratio_cong_train, x_ratio_cong_test, y_ratio_cong_train, y_ratio_cong_test) = classify_and_split_to_train_test(mode, ratio_cong_files, stimuli_type)
-		(x_ratio_incong_train, x_ratio_incong_test, y_ratio_incong_train, y_ratio_incong_test) = classify_and_split_to_train_test(mode, ratio_incong_files, stimuli_type)
+		(x_ratio_cong_train, x_ratio_cong_test, y_ratio_cong_train, y_ratio_cong_test) = classify_and_split_to_train_test(mode, ratio_cong_files, stimuli_type, one_hot)
+		(x_ratio_incong_train, x_ratio_incong_test, y_ratio_incong_train, y_ratio_incong_test) = classify_and_split_to_train_test(mode, ratio_incong_files, stimuli_type, one_hot)
 
 
 		x_ratio_cong_train, y_ratio_cong_train = create_balanced_incong_cong_train_test(x_ratio_cong_train, y_ratio_cong_train, [], [])
@@ -227,13 +227,13 @@ def create_balanced_incong_cong_train_test(x_incong_stimuli, y_incong_labels, x_
 	return np.array(x), np.array(y)
 
 
-def classify_and_split_to_train_test(mode, files, stimuli_type):
+def classify_and_split_to_train_test(mode, files, stimuli_type, one_hot):
 	data = []
 	task = mode
 	for path in files:
 		# print(path)
 		# Classification: returns 0 if left stimuli is more white/ bigger numerically and 1 otherwise.
-		label = extract_label(path, stimuli_type, task)
+		label = extract_label(path, stimuli_type, task, one_hot)
 		rgba_image = Image.open(path)
 		rgb_image = rgba_image.convert('RGB')
 		rgb_image = rgb_image.resize((IMG_SIZE, IMG_SIZE), Image.ANTIALIAS)

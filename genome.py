@@ -105,13 +105,13 @@ class Genome():
 
 		self.update_hash()
 
-	def train(self, trainingset, mode, equate, path, batch_size, epochs, debug_mode, best_individual_acc, model, new_trainer_classification_cache, training_strategy):
+	def train(self, trainingset, mode, equate, path, batch_size, epochs, debug_mode, best_individual_acc, model, new_trainer_classification_cache, training_strategy, one_hot):
 		train_result = train_and_score(genome=self,
 							dataset=trainingset,
 							mode=mode, equate=equate, path=path,
 							batch_size=batch_size, epochs=epochs,
 							debug_mode=debug_mode, max_val_accuracy=best_individual_acc,
-                    		model=model, trainer_classification_cache=new_trainer_classification_cache, training_strategy=training_strategy)
+                    		model=model, trainer_classification_cache=new_trainer_classification_cache, training_strategy=training_strategy, one_hot=one_hot)
 		# update local variables for evolve function which is based on accuracy.
 		self.accuracy = train_result.curr_individual_acc
 		self.val_loss = train_result.curr_individual_loss

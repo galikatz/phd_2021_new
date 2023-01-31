@@ -318,8 +318,8 @@ def evaluate_model(genome, model, history, train_test_data, batch_size):
 	validation_set_size = len(train_test_data.x_test)
 	validation_set_size_congruent = len(train_test_data.x_cong_test)
 
-	roc_score, y_test_corrected = predict_and_calc_roc_score(model, train_test_data, batch_size)
-
+	# roc_score, y_test_corrected = predict_and_calc_roc_score(model, train_test_data, batch_size)
+	y_test_corrected = None
 	best_current_val_loss = round(score[0], 3)
 	best_current_val_accuracy = round(score[1], 3)
 	print('Best current test loss from all epochs:',
@@ -337,20 +337,21 @@ def evaluate_model(genome, model, history, train_test_data, batch_size):
 							   validation_set_size_congruent)
 	return train_result
 
+#
+# def predict_and_calc_roc_score(model, train_test_data, batch_size):
+# 	# saving the results of each prediction
+# 	y_test_prediction = model.predict(x=train_test_data.x_test, batch_size=batch_size, verbose=0)
+# 	# y_test_corrected = np.argmax(y_test_prediction, axis=-1)
+# 	# fixing the prediction result to be 0 and 1 and not float thresholds.
+# 	y_test_corrected = []
+# 	for i in range(len(y_test_prediction)):
+# 		if y_test_prediction[i][0] > 0.5:
+# 			left_stimulus_result = 1
+# 			right_stimulus_result = 0
+# 		else:
+# 			left_stimulus_result = 0
+# 			right_stimulus_result = 1
+# 		y_test_corrected.append(np.array([left_stimulus_result, right_stimulus_result]))
+# 	roc_score = roc_auc_score(train_test_data.y_test, y_test_corrected)
 
-def predict_and_calc_roc_score(model, train_test_data, batch_size):
-	# saving the results of each prediction
-	y_test_prediction = model.predict(x=train_test_data.x_test, batch_size=batch_size, verbose=0)
-
-	# fixing the prediction result to be 0 and 1 and not float thresholds.
-	y_test_corrected = []
-	for i in range(len(y_test_prediction)):
-		if y_test_prediction[i][0] > 0.5:
-			left_stimulus_result = 1
-			right_stimulus_result = 0
-		else:
-			left_stimulus_result = 0
-			right_stimulus_result = 1
-		y_test_corrected.append(np.array([left_stimulus_result, right_stimulus_result]))
-	roc_score = roc_auc_score(train_test_data.y_test, y_test_corrected)
 	return roc_score, y_test_corrected
