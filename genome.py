@@ -144,8 +144,8 @@ class Genome():
 
 	# convert nb_neurons_i at each layer to a single list
 	def nb_neurons(self):
-		num_of_layers = len(self.all_possible_genes['nb_layers'])
-		nb_neurons = [None] * (num_of_layers-1)
-		for i in range(0, num_of_layers-1):
+		num_of_layers = self.geneparam['nb_layers']
+		nb_neurons = [None] * (num_of_layers)
+		for i in range(0, num_of_layers):
 			nb_neurons[i] = self.geneparam['nb_neurons_' + str(i+1)]
 		return nb_neurons
