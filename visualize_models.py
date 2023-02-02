@@ -11,8 +11,8 @@ from keras.utils.vis_utils import plot_model
 
 
 def plot_sequential_model():
-    name = "model_2022-10-15_17_mode_count_equate_2_gen_19_individual_373_acc_0.833_loss_0.445_layers_3_neurons_[16, 64, 32]_activation_linear_optimizer_rmsprop"
-    PATH = f"/Users/gali.k/phd/phd_2021/visulization/simulaiton_5/colors_count_equate_2/"
+    name = "model_2023-01-31_20_mode_count_equate_1_gen_1_individual_3_acc_0.846_loss_0.363_layers_2_neurons_[128, 128]_activation_linear_optimizer_adam"
+    PATH = f"/Users/gali.k/phd/phd_2021/visulization/simulation_5_new/"
 
     import sys;
     print('Python %s on %s' % (sys.version, sys.platform))
@@ -69,4 +69,4 @@ def plot_multi_task_model():
 
 if __name__ == '__main__':
     # plot_sequential_model();
-    plot_multi_task_model();
+    plot_sequential_model();
