@@ -214,7 +214,7 @@ def evaluate_model(genome, model, history, train_test_data, batch_size):
 	score = model.evaluate(x=train_test_data.x_test, y=train_test_data.y_test, batch_size=batch_size, verbose=0)
 
 	# # taking the last epoch result to be kept ( and not all the loss and accuracies from all epochs, since the last epoch is the best)
-	if history is not None:
+	if history is not None: # we do not use this history code - it is only for drawing a graph. we use evaluate per dataset and the score above as a stopping criteria
 		training_accuracy = history.history["accuracy"][-1]
 		validation_accuracy = history.history["val_accuracy"][-1]
 		training_loss = history.history["loss"][-1]
