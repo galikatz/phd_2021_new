@@ -17,6 +17,8 @@ from evolution_utils import RATIOS
 from train_test_data import TrainTestData
 
 IMG_SIZE = 100
+ONE_HOT_CLASSES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+ONE_HOT_EMBEDDING_ARRAY = to_categorical(ONE_HOT_CLASSES)
 
 
 def create_model(x_train, y_train, x_test, y_test):
@@ -227,6 +229,16 @@ def create_balanced_incong_cong_train_test(x_incong_stimuli, y_incong_labels, x_
 	return np.array(x), np.array(y)
 
 
+def crop_center(img):
+	frac = 0.70
+	left = img.size[0] * ((1 - frac) / 2)
+	upper = img.size[1] * ((1 - frac) / 2)
+	right = img.size[0] - ((1 - frac) / 2) * img.size[0]
+	bottom = img.size[1] - ((1 - frac) / 2) * img.size[1]
+	cropped_img = img.crop((left, upper, right, bottom))
+	return cropped_img
+
+
 def classify_and_split_to_train_test(mode, files, stimuli_type, one_hot):
 	data = []
 	task = mode
@@ -236,6 +248,7 @@ def classify_and_split_to_train_test(mode, files, stimuli_type, one_hot):
 		label = extract_label(path, stimuli_type, task, one_hot)
 		rgba_image = Image.open(path)
 		rgb_image = rgba_image.convert('RGB')
+		rgb_image = crop_center(rgb_image)
 		rgb_image = rgb_image.resize((IMG_SIZE, IMG_SIZE), Image.ANTIALIAS)
 		img = rgb_image.copy()
 		data.append([np.array(img), label['classification_label']])
