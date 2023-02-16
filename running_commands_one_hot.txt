@@ -1,0 +1,144 @@
+cd C:\gali_phd\
+ .\myenv\Scripts\activate
+
+
+pop = 20, gens = 30, equate = 3
+-------------------------------
+#size
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode size --mode_th 0.2 --images_dir "C:\gali_phd\equate_3\images" --stopping_th 0.90 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 3 --savedir "C:\gali_phd\equate_3\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+#count
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode count --mode_th 0.2 --images_dir "C:\gali_phd\equate_3\images" --stopping_th 0.85 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 3 --savedir "C:\gali_phd\equate_3\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+#size-count
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode size-count --mode_th 0.85 --images_dir "C:\gali_phd\equate_3\images" --stopping_th 0.85 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 3 --savedir "C:\gali_phd\equate_3\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+#count-size
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode count-size --mode_th 0.85 --images_dir "C:\gali_phd\equate_3\images" --stopping_th 0.90 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 3 --savedir "C:\gali_phd\equate_3\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+#colors
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode colors --mode_th 0.2 --images_dir "C:\gali_phd\colors\equate_3\images" --stopping_th 0.90 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 3 --savedir "C:\gali_phd\colors\equate_3\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+#colors-count
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode colors-count --mode_th 0.85 --images_dir "C:\gali_phd\colors\equate_3\images" --stopping_th 0.85 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 3 --savedir "C:\gali_phd\colors\equate_3\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+
+pop = 20, gens = 30, equate =2
+-------------------------------
+#size
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode size --mode_th 0.2 --images_dir "C:\gali_phd\equate_2\images" --stopping_th 0.90 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 2 --savedir "C:\gali_phd\equate_2\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+#count
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode count --mode_th 0.2 --images_dir "C:\gali_phd\equate_2\images" --stopping_th 0.85 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 2 --savedir "C:\gali_phd\equate_2\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+#size-count
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode size-count --mode_th 0.85 --images_dir "C:\gali_phd\equate_2\images" --stopping_th 0.85 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 2 --savedir "C:\gali_phd\equate_2\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+#count-size
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode count-size --mode_th 0.85 --images_dir "C:\gali_phd\equate_2\images" --stopping_th 0.90 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 2 --savedir "C:\gali_phd\equate_2\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+#colors
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode colors --mode_th 0.2 --images_dir "C:\gali_phd\colors\equate_2\images" --stopping_th 0.90 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 2 --savedir "C:\gali_phd\colors\equate_2\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+#colors-count
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode colors-count --mode_th 0.85 --images_dir "C:\gali_phd\colors\equate_2\images" --stopping_th 0.85 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 2 --savedir "C:\gali_phd\colors\equate_2\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+
+pop = 20, gens = 30, equate = 1
+-------------------------------
+
+#size
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode size --mode_th 0.2 --images_dir "C:\gali_phd\equate_1\images" --stopping_th 0.90 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 1 --savedir "C:\gali_phd\equate_1\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+#count
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode count --mode_th 0.2 --images_dir "C:\gali_phd\equate_1\images" --stopping_th 0.85 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 1 --savedir "C:\gali_phd\equate_1\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+#size-count
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode size-count --mode_th 0.85 --images_dir "C:\gali_phd\equate_1\images" --stopping_th 0.85 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 1 --savedir "C:\gali_phd\equate_1\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+#count-size
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode count-size --mode_th 0.85 --images_dir "C:\gali_phd\equate_1\images" --stopping_th 0.90 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 1 --savedir "C:\gali_phd\equate_1\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+#colors
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode colors --mode_th 0.2 --images_dir "C:\gali_phd\colors\equate_1\images" --stopping_th 0.90 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 1 --savedir "C:\gali_phd\colors\equate_1\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+#colors-count
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode colors-count --mode_th 0.85 --images_dir "C:\gali_phd\colors\equate_1\images" --stopping_th 0.85 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 1 --savedir "C:\gali_phd\colors\equate_1\images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --h5_path "C:\gali_phd\models" --one_hot True
+
+
+Final tests
+
+simulation 6 colors-count --> colors
+------------------------------------
+equate_1
+--------
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode colors --mode_th 0.2 --images_dir "/Users/gali.k/phd/phd_2021/stimuli/colors/equate_1/images" --stopping_th 0.90 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 1 --savedir "/Users/gali.k/phd/Genereating_dot_arrays/images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --should_train_first False --h5_path "/Users/gali.k/phd/phd_2021/post_tests/results_proffeciancy_0.85_counting_stop_0.85_batch_1024_3_epochs/equate_1/colors-count" --test_prev_task True --one_hot True
+
+equate_2
+--------
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode colors --mode_th 0.2 --images_dir "/Users/gali.k/phd/phd_2021/stimuli/colors/equate_2/images" --stopping_th 0.90 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 2 --savedir "/Users/gali.k/phd/Genereating_dot_arrays/images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --should_train_first False --h5_path "/Users/gali.k/phd/phd_2021/post_tests/results_proffeciancy_0.85_counting_stop_0.85_batch_1024_3_epochs/equate_2/colors-count" --test_prev_task True --one_hot True
+
+equate_3
+--------
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode colors --mode_th 0.2 --images_dir "/Users/gali.k/phd/phd_2021/stimuli/colors/equate_3/images" --stopping_th 0.90 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 3 --savedir "/Users/gali.k/phd/Genereating_dot_arrays/images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --should_train_first False --h5_path "/Users/gali.k/phd/phd_2021/post_tests/results_proffeciancy_0.85_counting_stop_0.85_batch_1024_3_epochs/equate_3/colors-count" --test_prev_task True --one_hot True
+
+
+simulation 6 size-count --> size
+------------------------------------
+
+equate_1
+--------
+python /Users/gali.k/phd/phd_2021/main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode size --mode_th 0.2 --images_dir "/Users/gali.k/phd/phd_2021/stimuli/equate_1/images" --stopping_th 0.90 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 1 --savedir "/Users/gali.k/phd/Genereating_dot_arrays/images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --should_train_first False --h5_path "/Users/gali.k/phd/phd_2021/post_tests/results_proffeciancy_0.85_counting_stop_0.85_batch_1024_3_epochs/equate_1/size-count" --test_prev_task True --one_hot True
+
+equate_2
+--------
+python /Users/gali.k/phd/phd_2021/main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode size --mode_th 0.2 --images_dir "/Users/gali.k/phd/phd_2021/stimuli/equate_2/images" --stopping_th 0.90 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 2 --savedir "/Users/gali.k/phd/Genereating_dot_arrays/images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --should_train_first False --h5_path "/Users/gali.k/phd/phd_2021/post_tests/results_proffeciancy_0.85_counting_stop_0.85_batch_1024_3_epochs/equate_2/size-count" --test_prev_task True --one_hot True
+
+equate_3
+--------
+python /Users/gali.k/phd/phd_2021/main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode size --mode_th 0.2 --images_dir "/Users/gali.k/phd/phd_2021/stimuli/equate_3/images" --stopping_th 0.90 --epochs 3 --debug True --analysis_path "C:\gali_phd\analysis" --equate 3 --savedir "/Users/gali.k/phd/Genereating_dot_arrays/images" --congruency 2 --should_delete_stimuli False --batch_size 1024 --running_on_cloud False --should_train_first False --h5_path "/Users/gali.k/phd/phd_2021/post_tests/results_proffeciancy_0.85_counting_stop_0.85_batch_1024_3_epochs/equate_3/size-count" --test_prev_task True --one_hot True
+
+
+simulation 5 size-count --> size
+------------------------------------
+equate_1
+--------
+python /Users/gali.k/phd/phd_2021/main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode size --mode_th 0.2 --images_dir "/Users/gali.k/phd/phd_2021/stimuli/equate_1/images" --stopping_th 0.90 --epochs 2 --debug True --analysis_path "C:\gali_phd\analysis" --equate 1 --savedir "/Users/gali.k/phd/Genereating_dot_arrays/images" --congruency 2 --should_delete_stimuli False --batch_size 512 --running_on_cloud False --should_train_first False --h5_path "/Users/gali.k/phd/phd_2021/post_tests/result_proffeciancy_0.65_counting_stop_0.80__batch_512_2_epochs/equate_1/size-count" --test_prev_task True --one_hot True
+
+equate_2
+--------
+python /Users/gali.k/phd/phd_2021/main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode size --mode_th 0.2 --images_dir "/Users/gali.k/phd/phd_2021/stimuli/equate_2/images" --stopping_th 0.90 --epochs 2 --debug True --analysis_path "C:\gali_phd\analysis" --equate 2 --savedir "/Users/gali.k/phd/Genereating_dot_arrays/images" --congruency 2 --should_delete_stimuli False --batch_size 512 --running_on_cloud False --should_train_first False --h5_path "/Users/gali.k/phd/phd_2021/post_tests/result_proffeciancy_0.65_counting_stop_0.80__batch_512_2_epochs/equate_2/size-count" --test_prev_task True --one_hot True
+
+equate_3
+--------
+python /Users/gali.k/phd/phd_2021/main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode size --mode_th 0.2 --images_dir "/Users/gali.k/phd/phd_2021/stimuli/equate_3/images" --stopping_th 0.90 --epochs 2 --debug True --analysis_path "C:\gali_phd\analysis" --equate 3 --savedir "/Users/gali.k/phd/Genereating_dot_arrays/images" --congruency 2 --should_delete_stimuli False --batch_size 512 --running_on_cloud False --should_train_first False --h5_path "/Users/gali.k/phd/phd_2021/post_tests/result_proffeciancy_0.65_counting_stop_0.80__batch_512_2_epochs/equate_3/size-count" --test_prev_task True --one_hot True
+
+
+simulation 5 count-size --> count
+------------------------------------
+equate_1
+--------
+python /Users/gali.k/phd/phd_2021/main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode count --mode_th 0.2 --images_dir "/Users/gali.k/phd/phd_2021/stimuli/equate_1/images" --stopping_th 0.90 --epochs 2 --debug True --analysis_path "C:\gali_phd\analysis" --equate 1 --savedir "/Users/gali.k/phd/Genereating_dot_arrays/images" --congruency 2 --should_delete_stimuli False --batch_size 512 --running_on_cloud False --should_train_first False --h5_path "/Users/gali.k/phd/phd_2021/post_tests/result_proffeciancy_0.65_counting_stop_0.80__batch_512_2_epochs/equate_1/count-size" --test_prev_task True --one_hot True
+
+equate_2
+--------
+python /Users/gali.k/phd/phd_2021/main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode count --mode_th 0.2 --images_dir "/Users/gali.k/phd/phd_2021/stimuli/equate_2/images" --stopping_th 0.90 --epochs 2 --debug True --analysis_path "C:\gali_phd\analysis" --equate 2 --savedir "/Users/gali.k/phd/Genereating_dot_arrays/images" --congruency 2 --should_delete_stimuli False --batch_size 512 --running_on_cloud False --should_train_first False --h5_path "/Users/gali.k/phd/phd_2021/post_tests/result_proffeciancy_0.65_counting_stop_0.80__batch_512_2_epochs/equate_2/count-size" --test_prev_task True --one_hot True
+
+equate_3
+--------
+python /Users/gali.k/phd/phd_2021/main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode count --mode_th 0.2 --images_dir "/Users/gali.k/phd/phd_2021/stimuli/equate_3/images" --stopping_th 0.90 --epochs 2 --debug True --analysis_path "C:\gali_phd\analysis" --equate 3 --savedir "/Users/gali.k/phd/Genereating_dot_arrays/images" --congruency 2 --should_delete_stimuli False --batch_size 512 --running_on_cloud False --should_train_first False --h5_path "/Users/gali.k/phd/phd_2021/post_tests/result_proffeciancy_0.65_counting_stop_0.80__batch_512_2_epochs/equate_3/count-size" --test_prev_task True --one_hot True
+
+
+simulation 5 colors-count --> colors
+------------------------------------
+equate_1
+--------
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode colors --mode_th 0.2 --images_dir "/Users/gali.k/phd/phd_2021/stimuli/colors/equate_1/images" --stopping_th 0.90 --epochs 2 --debug True --analysis_path "C:\gali_phd\analysis" --equate 1 --savedir "/Users/gali.k/phd/Genereating_dot_arrays/images" --congruency 2 --should_delete_stimuli False --batch_size 512 --running_on_cloud False --should_train_first False --h5_path "/Users/gali.k/phd/phd_2021/post_tests/result_proffeciancy_0.65_counting_stop_0.80__batch_512_2_epochs/equate_1/colors-count" --test_prev_task True --one_hot True
+
+equate_2
+--------
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode colors --mode_th 0.2 --images_dir "/Users/gali.k/phd/phd_2021/stimuli/colors/equate_2/images" --stopping_th 0.90 --epochs 2 --debug True --analysis_path "C:\gali_phd\analysis" --equate 2 --savedir "/Users/gali.k/phd/Genereating_dot_arrays/images" --congruency 2 --should_delete_stimuli False --batch_size 512 --running_on_cloud False --should_train_first False --h5_path "/Users/gali.k/phd/phd_2021/post_tests/result_proffeciancy_0.65_counting_stop_0.80__batch_512_2_epochs/equate_2/colors-count" --test_prev_task True --one_hot True
+
+equate_3
+--------
+python C:\Users\WIN2021\IdeaProjects\phd_2021_new\main_on_cloud.py --datasource 5 --population 20 --generations 30 --mode colors --mode_th 0.2 --images_dir "/Users/gali.k/phd/phd_2021/stimuli/colors/equate_3/images" --stopping_th 0.90 --epochs 2 --debug True --analysis_path "C:\gali_phd\analysis" --equate 3 --savedir "/Users/gali.k/phd/Genereating_dot_arrays/images" --congruency 2 --should_delete_stimuli False --batch_size 512 --running_on_cloud False --should_train_first False --h5_path "/Users/gali.k/phd/phd_2021/post_tests/result_proffeciancy_0.65_counting_stop_0.80__batch_512_2_epochs/equate_3/colors-count" --test_prev_task True --one_hot True
