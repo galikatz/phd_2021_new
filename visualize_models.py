@@ -11,18 +11,18 @@ from keras.utils.vis_utils import plot_model
 
 
 def plot_sequential_model():
-    name = "model_2023-01-31_20_mode_count_equate_1_gen_1_individual_3_acc_0.846_loss_0.363_layers_2_neurons_[128, 128]_activation_linear_optimizer_adam"
-    PATH = f"/Users/gali.k/phd/phd_2021/visulization/simulation_5_new/"
+    "/Users/gali.k/phd/phd_2021/visulization/simulation_5_balanced/equate_2/size/gens/model_2023-02-03_20_mode_size_equate_2_gen_15_individual_295_acc_0.908_loss_0.475_layers_3_neurons_[32, 16, 64]_activation_elu_optimizer_adam.h5"
+    name = "model_2023-02-03_20_mode_size_equate_2_gen_15_individual_295_acc_0.908_loss_0.475_layers_3_neurons_[32, 16, 64]_activation_elu_optimizer_adam"
+    PATH_FROM = f"/Users/gali.k/phd/phd_2021/visulization/simulation_5_balanced/equate_2/size/gens/"
+    PATH_TO = f"/Users/gali.k/phd/phd_2021/visulization/simulation_5_balanced/equate_2/size/viz/"
 
     import sys;
     print('Python %s on %s' % (sys.version, sys.platform))
     sys.path.extend(['/Users/gali.k/phd/phd_2021'])
-    model = load_model(PATH + name + ".h5")
+    model = load_model(PATH_FROM + name + ".h5")
 
-    visualkeras.layered_view(model, legend=True, to_file=f'{PATH}/{name}.png')  # write and show
-    plot_model(model,
-               to_file=f'{PATH}/summary_{name}.png',
-               show_shapes=True, show_layer_names=True)
+    visualkeras.layered_view(model, legend=True, to_file=f'{PATH_TO}/{name}.png')  # write and show
+    plot_model(model,to_file=f'{PATH_TO}/summary_{name}.png',show_shapes=True, show_layer_names=True)
 
 
 def plot_multi_task_model():

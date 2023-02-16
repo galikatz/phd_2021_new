@@ -5,6 +5,8 @@ import os # used for navigating to image path
 import glob
 import logging
 import random
+
+from cv2.cv2 import imread
 from sklearn.utils import shuffle
 from keras.utils import np_utils
 from sklearn.model_selection import train_test_split
@@ -264,3 +266,53 @@ def classify_and_split_to_train_test(mode, files, stimuli_type, one_hot):
 	final_labels_as_np_array = np.array(final_labels)
 	(x_train, x_test, y_train, y_test) = train_test_split(final_data_after_normalization, final_labels_as_np_array, test_size=0.2, random_state=101, shuffle=True)
 	return x_train, x_test, y_train, y_test
+
+
+def crop_vertically(img):
+	width = img.width
+	height = img.height
+	# Crop the image into two vertical halves
+	left = img.crop((0, 0, width // 2, height))
+	right = img.crop((width // 2, 0, width, height))
+	return left, right
+
+
+def classify_for_dual_input_and_split_to_train_test(mode, path, stimuli_type, one_hot, as_gray, img_rows, img_cols, channels, num_classes):
+	left_images = []
+	right_images = []
+	labels = []
+	files = os.listdir(path)
+	for file_name in files:
+		rgba_image = Image.open(path + os.sep + file_name)
+		rgb_image = rgba_image.convert('RGB')
+		left_image_cropped, right_image_cropped = crop_vertically(rgb_image)
+
+		# left_image_cropped = crop_center(left_image_cropped)
+		left_image_cropped = left_image_cropped.resize((IMG_SIZE, IMG_SIZE), Image.ANTIALIAS)
+		left_image = left_image_cropped.copy()
+
+		# right_image_cropped = crop_center(right_image_cropped)
+		right_image_cropped = right_image_cropped.resize((IMG_SIZE, IMG_SIZE), Image.ANTIALIAS)
+		right_image = right_image_cropped.copy()
+
+		left_image = np.array(left_image)
+		right_image = np.array(right_image)
+		left_images.append(left_image)
+		right_images.append(right_image)
+		label = extract_label(file_name=path + os.sep + file_name, stimuli_type=stimuli_type, task=mode, one_hot=one_hot)['classification_label']
+		labels.append(label)
+
+	left_images = np.asarray(left_images, dtype=np.float32)
+	right_images = np.asarray(right_images, dtype=np.float32)
+
+	# normalize
+	left_images = left_images / 255.0  # np.max(images)
+	right_images = right_images / 255.0  # np.max(images)
+
+	# reshape to match Keras expectaions
+	left_images = left_images.reshape(img_rows, img_cols, channels)
+	right_images = right_images.reshape(img_rows, img_cols, channels)
+
+	categorigal_labels = to_categorical(labels, num_classes)
+
+	return right_images, left_images, categorigal_labels

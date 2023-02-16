@@ -17,6 +17,8 @@ from classify import creating_train_test_data, IMG_SIZE
 from evolution_utils import evaluate_model
 
 # Helper: Early stopping.
+from visualize_image_presentation import visualize_image_rep, predict_one_input
+
 early_stopper = EarlyStopping(monitor='val_loss', min_delta=0.1, patience=2, verbose=0, mode='auto')
 FIXED_NB_CLASSES = 2 # left and right sides
 ONE_HOT_FIXED_NB_CLASSES = 11 # for the numbers 0-10. 3 will be represented like this: [0,0,0,1,0,0,0,0,0,0,0]
@@ -96,7 +98,7 @@ def compile_multitask_cnn(genome, nb_classes, input_shape):
             x = Conv2D(nb_neurons[i], kernel_size=(3, 3), activation=activation, padding='same',
                              input_shape=inputs)
         else:
-            x = Conv2D(nb_neurons[i], kernel_size=(3, 3), activation=activation)(x)
+            x = Conv2D(nb_neurons[i], kernel_size=(3, 3), activation=activation, padding='same')(x)
 
         if i < 2:  # otherwise we hit zero
             x = MaxPooling2D(pool_size=(2, 2))(x)
@@ -228,8 +230,16 @@ def train_and_score(genome, dataset, mode, equate, path, batch_size, epochs, deb
                         validation_data=(train_test_data.x_test, train_test_data.y_test),
                         callbacks=[history,
                                    early_stopper])  # using early stopping so no real limit - don't want to waste time on horrible architectures
+
+    # visualize_image_rep(model, "/Users/gali.k/phd/phd_2021/stimuli/equate_3/images_1/incong50_5_10_1229.jpg")
+    # visualize_image_rep(model,"/Users/gali.k/phd/phd_2021/stimuli/equate_3/images_1/incong56_5_9_797.jpg")
+    # visualize_image_rep(model, "/Users/gali.k/phd/phd_2021/stimuli/equate_3/images_1/incong56_5_9_446.jpg")
+    # predict_one_input(model, train_test_data.x_test[0])
+    #predict_one_input(model, "/Users/gali.k/phd/phd_2021/stimuli/equate_1/images_1/incong50_10_5_1325.jpg")
+    #visualize_image_rep(model, "/Users/gali.k/phd/phd_2021/stimuli/equate_1/images_1/incong50_10_5_1325.jpg")
     train_result = evaluate_model(genome=genome, model=model, history=history, train_test_data=train_test_data, batch_size=batch_size)
 
+    pass
     ############################################################################################################################
     # Saving the model from all individuals and deleting the unnecessary ones, but will return the current individual result.
     ############################################################################################################################
