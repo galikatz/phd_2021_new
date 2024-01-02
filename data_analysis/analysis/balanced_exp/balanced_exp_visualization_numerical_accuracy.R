@@ -1,4 +1,4 @@
-# install.packages(c("ggplot2", "ggpubr", "tidyverse", "broom", "AICcmodavg", "afex", "emmeans", "parameters", "effectsize", "ggthemes"))
+install.packages(c("ggplot2", "ggpubr", "tidyverse", "broom", "AICcmodavg", "afex", "emmeans", "parameters", "effectsize", "ggthemes"))
 library(ggplot2)
 library(ggpubr)
 library(tidyverse)
@@ -220,3 +220,120 @@ p_control_compare_with_ratio_df <- ggplot(control_compare_group_by_with_ratio, a
 #p_count
 p_control_compare_with_ratio_df + facet_grid(Train ~ Task)
 
+############### PNAS ##############
+
+pnas_numerical <- read.csv("/Users/gali.k/phd/phd_2021/data_analysis/analysis/balanced_exp/pnas_acc_diff.csv", header = TRUE,
+                   colClasses = c("numeric", "factor", "factor", "factor", "factor", "numeric"))
+# group by overall ratios
+pnas_numerical_group_by = pnas_numerical %>% group_by(Task, Train, Test) %>%
+                   summarise(Accuracy_difference = mean(Accuracy_diff),
+                             std = sd(Accuracy_diff),
+                             .groups = 'drop')
+pnas_numerical_group_by$Train <- factor(pnas_numerical_group_by$Train, levels = c("AD-controlled", "TS-controlled", "CH-controlled"),
+                  labels = c("Train Test AD-controlled", "Train Test TS-controlled", "Train Test CH-controlled"))
+
+pnas_numerical_group_by$Task <- factor(pnas_numerical_group_by$Task, levels = c("count", "size-count", "colors-count"),
+                  labels = c("num", "phys-num", "colors-num"))
+
+pnas_numerical_df <- ggplot(pnas_numerical_group_by, aes(x=Task, y=Accuracy_difference)) +
+  theme_classic2() +  scale_fill_manual(values = c("#1599A4", "#9FDFE5"))+ #scale_fill_brewer(palette="Set1") +
+  geom_bar(stat="identity",  colour = "black", position=position_dodge()) +
+  # geom_errorbar( aes(x=Task, ymin=Accuracy_difference-std, ymax=Accuracy_difference+std),
+  #                width=0.3, colour="black", alpha=0.5, size=0.5, position=position_dodge(.9)) +
+  ggtitle("Accuracy Diff when Evolving on Different Physical Properies") +  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(text = element_text(size = 20, family="Times New Roman", face="bold"))
+#p_count
+pnas_numerical_df + facet_grid(~Train)
+
+# PNAS 2
+
+# select from master dataframe only Train columns equal to  'AD-controlled'
+master_filtered = master[master$Train == 'AD-controlled',]
+
+master_group_by_overall_ratio = master_filtered %>% group_by(Task, Test, Congruity) %>%
+                   summarise(Accuracy = mean(Validation.Accuracy),
+                             std = sd(Validation.Accuracy),
+                             .groups = 'drop')
+master_group_by_overall_ratio$Test <- factor(master_group_by_overall_ratio$Test, levels = c("AD-controlled", "CH-controlled", "TS-controlled"),
+                  labels = c("Test AD-controlled", "Test CH-controlled", "Test TS-controlled"))
+master_group_by_overall_ratio$Task <- factor(master_group_by_overall_ratio$Task, levels = c("count", "size-count", "colors-count"),
+                  labels = c("num", "phy-num", "colors-num"))
+master_group_by_overall_ratio_df <- ggplot(master_group_by_overall_ratio, aes(x=Task, y=Accuracy, fill=Congruity)) +
+  theme_classic2() +  scale_fill_manual(values = c("#93068F", "#D198CF")) +
+  geom_bar(stat="identity",  colour = "black", position=position_dodge()) +
+  geom_errorbar( aes(x=Task, ymin=Accuracy-std, ymax=Accuracy+std),
+                 width=0.3, colour="black", alpha=0.5, size=0.5, position=position_dodge(.9)) +
+  ggtitle("Trained with AD Numerical Tasks Compared to Control") +  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(text = element_text(size = 20, family="Times New Roman", face="bold"))
+#p_count
+master_group_by_overall_ratio_df + facet_grid(~Test)
+
+
+# PNAS 2
+
+# select from master dataframe only Train columns equal to  'AD-controlled'
+master_filtered = master[master$Train == 'TS-controlled',]
+
+master_group_by_overall_ratio = master_filtered %>% group_by(Task, Test, Congruity) %>%
+                   summarise(Accuracy = mean(Validation.Accuracy),
+                             std = sd(Validation.Accuracy),
+                             .groups = 'drop')
+master_group_by_overall_ratio$Test <- factor(master_group_by_overall_ratio$Test, levels = c("AD-controlled", "CH-controlled", "TS-controlled"),
+                  labels = c("Test AD-controlled", "Test CH-controlled", "Test TS-controlled"))
+master_group_by_overall_ratio$Task <- factor(master_group_by_overall_ratio$Task, levels = c("count", "size-count", "colors-count"),
+                  labels = c("num", "phy-num", "colors-num"))
+master_group_by_overall_ratio_df <- ggplot(master_group_by_overall_ratio, aes(x=Task, y=Accuracy, fill=Congruity)) +
+  theme_classic2() +  scale_fill_manual(values = c("#93068F", "#D198CF")) +
+  geom_bar(stat="identity",  colour = "black", position=position_dodge()) +
+  geom_errorbar( aes(x=Task, ymin=Accuracy-std, ymax=Accuracy+std),
+                 width=0.3, colour="black", alpha=0.5, size=0.5, position=position_dodge(.9)) +
+  ggtitle("Trained with TS Numerical Tasks Compared to Control") +  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(text = element_text(size = 20, family="Times New Roman", face="bold"))
+#p_count
+master_group_by_overall_ratio_df + facet_grid(~Test)
+
+# PNAS 3
+
+master_filtered = master[master$Train == 'CH-controlled',]
+
+master_group_by_overall_ratio = master_filtered %>% group_by(Task, Test, Congruity) %>%
+                   summarise(Accuracy = mean(Validation.Accuracy),
+                             std = sd(Validation.Accuracy),
+                             .groups = 'drop')
+master_group_by_overall_ratio$Test <- factor(master_group_by_overall_ratio$Test, levels = c("AD-controlled", "CH-controlled", "TS-controlled"),
+                  labels = c("Test AD-controlled", "Test CH-controlled", "Test TS-controlled"))
+master_group_by_overall_ratio$Task <- factor(master_group_by_overall_ratio$Task, levels = c("count", "size-count", "colors-count"),
+                  labels = c("num", "phy-num", "colors-num"))
+master_group_by_overall_ratio_df <- ggplot(master_group_by_overall_ratio, aes(x=Task, y=Accuracy, fill=Congruity)) +
+  theme_classic2() +  scale_fill_manual(values = c("#93068F", "#D198CF")) +
+  geom_bar(stat="identity",  colour = "black", position=position_dodge()) +
+  geom_errorbar( aes(x=Task, ymin=Accuracy-std, ymax=Accuracy+std),
+                 width=0.3, colour="black", alpha=0.5, size=0.5, position=position_dodge(.9)) +
+  ggtitle("Trained with CH Numerical Tasks Compared to Control") +  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(text = element_text(size = 20, family="Times New Roman", face="bold"))
+#p_count
+master_group_by_overall_ratio_df + facet_grid(~Test)
+
+
+
+# PNAS 4
+
+master_group_by_overall_ratio = master %>% group_by(Task, Train, Test, Congruity) %>%
+                   summarise(Accuracy = mean(Validation.Accuracy),
+                             std = sd(Validation.Accuracy),
+                             .groups = 'drop')
+master_group_by_overall_ratio$Train <- factor(master_group_by_overall_ratio$Train, levels = c("AD-controlled", "CH-controlled", "TS-controlled"),
+                  labels = c("Train AD-controlled", "Train CH-controlled", "Train TS-controlled"))
+master_group_by_overall_ratio$Test <- factor(master_group_by_overall_ratio$Test, levels = c("AD-controlled", "CH-controlled", "TS-controlled"),
+                  labels = c("Test AD-controlled", "Test CH-controlled", "Test TS-controlled"))
+master_group_by_overall_ratio$Task <- factor(master_group_by_overall_ratio$Task, levels = c("count", "size-count", "colors-count"),
+                  labels = c("num", "phy-num", "colors-num"))
+master_group_by_overall_ratio_df <- ggplot(master_group_by_overall_ratio, aes(x=Task, y=Accuracy, fill=Congruity)) +
+  theme_classic2() +  scale_fill_manual(values = c("#93068F", "#D198CF")) +
+  geom_bar(stat="identity",  colour = "black", position=position_dodge()) +
+  geom_errorbar( aes(x=Task, ymin=Accuracy-std, ymax=Accuracy+std),
+                 width=0.3, colour="black", alpha=0.5, size=0.5, position=position_dodge(.9)) +
+  ggtitle("Numerical Tasks Compared to Control") +  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(text = element_text(size = 20, family="Times New Roman", face="bold"))
+#p_count
+master_group_by_overall_ratio_df + facet_grid(Train~Test)

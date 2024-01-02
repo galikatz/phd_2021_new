@@ -185,3 +185,29 @@ cont15 <-subset(contrasts_four_way_interaction_table_not_split, (contrast == '(c
 t_to_eta2(t=6.57,df_error=170)=0.20
 
 
+# PNAS
+
+cont201 <-subset(contrasts_four_way_interaction_table_not_split, (contrast == '(numerical CH-controlled AD.controlled Incongruent) - (physical-numerical CH-controlled AD.controlled Incongruent)' )) n.s.
+cont2011 <-subset(contrasts_four_way_interaction_table_not_split, (contrast == '(physical-numerical CH-controlled AD.controlled Incongruent) - (colors-numerical CH-controlled AD.controlled Incongruent)' )) p=0.916
+
+cont202 <-subset(contrasts_four_way_interaction_table_not_split, (contrast == '(numerical TS-controlled AD.controlled Incongruent) - (physical-numerical TS-controlled AD.controlled Incongruent)' )) p=0.859
+
+# diagonals
+
+cont203 <-subset(contrasts_four_way_interaction_table_not_split, (contrast == '(numerical CH-controlled CH.controlled Incongruent) - (physical-numerical CH-controlled CH.controlled Incongruent)' )) n.s.
+cont2031 <-subset(contrasts_four_way_interaction_table_not_split, (contrast == '(physical-numerical CH-controlled CH.controlled Incongruent) - (colors-numerical CH-controlled CH.controlled Incongruent)' )) p=0.010 !!!!
+t_to_eta2(t=5.91,df_error=170)=0.17
+cont2032 <-subset(contrasts_four_way_interaction_table_not_split, (contrast == '(numerical CH-controlled CH.controlled Incongruent) - (colors-numerical CH-controlled CH.controlled Incongruent)' )) n.s.!!!!
+
+cont204 <-subset(contrasts_four_way_interaction_table_not_split, (contrast == '(numerical TS-controlled TS.controlled Incongruent) - (physical-numerical TS-controlled TS.controlled Incongruent)' )) p=0.191
+cont2041 <-subset(contrasts_four_way_interaction_table_not_split, (contrast == '(physical-numerical TS-controlled TS.controlled Incongruent) - (colors-numerical TS-controlled TS.controlled Incongruent)' )) n.s.
+
+# alternating extrinsic
+cont205 <-subset(contrasts_four_way_interaction_table_not_split, (contrast == '(numerical TS-controlled CH.controlled Incongruent) - (physical-numerical TS-controlled CH.controlled Incongruent)' )) p=0.628
+
+
+
+
+
+
+
